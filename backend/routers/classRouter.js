@@ -7,7 +7,7 @@ const StudentModel = require('../models/studentModel'); // Import the Student mo
 
 router.post('/add', verifyToken, (req, res) => {
     console.log(req.body);
-    
+
     req.body.teacher = req.user._id;
     new Model(req.body).save()
         .then((result) => {
@@ -21,7 +21,7 @@ router.post('/add', verifyToken, (req, res) => {
 router.post('/addstudents', async (req, res) => {
     const { classId, studentEmail } = req.body;
     console.log(classId, studentEmail);
-    
+
     // if (!classId || !Array.isArray(studentEmail)) {
     //     return res.status(400).json({ error: 'Invalid input. Provide classId and an array of student emails.' });
     // }
@@ -30,7 +30,7 @@ router.post('/addstudents', async (req, res) => {
         // Fetch student IDs based on emails
         const student = await StudentModel.findOne({ email: studentEmail });
         console.log(student);
-        
+
         // const studentIds = students.map(student => student._id);
 
         if (!student) {
@@ -84,7 +84,6 @@ router.get('/getbyteacher', verifyToken, async (req, res) => {
         if (!classrooms || classrooms.length === 0) {
             return res.status(404).json({ error: 'No classrooms found for this teacher.' });
         }
-
         res.status(200).json(classrooms);
     } catch (err) {
         console.log(err);
