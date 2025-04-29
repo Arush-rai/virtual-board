@@ -1,10 +1,10 @@
 import Recorder from '@/components/Recorder'
 import React from 'react'
 
-const viewlectures= () => {
+const viewlectures = () => {
   return (
     <div>
- <Recorder />
+      <Recorder />
 
     </div>
   )
