@@ -2,12 +2,19 @@
 import axios from 'axios';
 import { useFormik } from 'formik';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React from 'react'
 import toast from 'react-hot-toast';
 import * as Yup from 'yup'
 
 const Teachersignup = () => {
+
+  const router = useRouter();
+
   const signupSchema = Yup.object().shape({
+    name: Yup.string()
+      .min(2, 'Name must be at least 2 characters')
+      .required('Name is required'),
     email: Yup.string()
       .email('Please enter a valod email')
       .required('Email is required'),
@@ -23,6 +30,7 @@ const Teachersignup = () => {
       .matches(/[A-Z]/, 'password must contain at least one uppercase')
       .matches(/[\d]/, 'password must contain at least one number')
       .required('password is required')
+      .oneOf([Yup.ref('password')], 'Passwords must match')
   })
   const signupForm = useFormik({
     initialValues: {
@@ -37,6 +45,7 @@ const Teachersignup = () => {
       axios.post('http://localhost:5000/teacher/add', values)
         .then((result) => {
           toast.success('Teacher Registered Successfully');
+          router.push('/teacher-login');
         }).catch((err) => {
           toast.error('Something went wrong');
         });
@@ -100,6 +109,42 @@ const Teachersignup = () => {
               <form onSubmit={signupForm.handleSubmit}>
                 <div className="grid gap-y-4">
                   {/* Form Group */}
+                  <div>
+                    <label htmlFor="name" className="block text-sm mb-2">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        id="name"
+                        onChange={signupForm.handleChange}
+                        value={signupForm.values.name}
+                        className="py-3 px-4 block w-full border-2 border-gray-200 rounded-lg text-sm focus:border-blue-500 focus:ring-blue-500 disabled:opacity-50 disabled:pointer-events-none"
+                        required=""
+                        aria-describedby="name-error"
+                      />
+                      <div className="hidden absolute inset-y-0 end-0 pointer-events-none pe-3">
+                        <svg
+                          className="size-5 text-red-500"
+                          width={16}
+                          height={16}
+                          fill="currentColor"
+                          viewBox="0 0 16 16"
+                          aria-hidden="true"
+                        >
+                          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM8 4a.905.905 0 0 0-.9.995l.35 3.507a.552.552 0 0 0 1.1 0l.35-3.507A.905.905 0 0 0 8 4zm.002 6a1 1 0 1 0 0 2 1 1 0 0 0 0-2z" />
+                        </svg>
+                      </div>
+                    </div>
+                    {
+                      (signupForm.errors.name && signupForm.touched.name) && (
+                        <div className='text-xs text-red-600 mt-2'>{signupForm.errors.name}</div>
+                      )
+                    }
+                  </div>
+                  {/* End Form Group */}
+                  
+                  {/* Email Form Group */}
                   <div>
                     <label htmlFor="email" className="block text-sm mb-2">
                       Email address
