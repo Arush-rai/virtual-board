@@ -6,8 +6,7 @@ const verifyToken = require('../middlewares/verifyToken');
 
 router.post('/add', verifyToken, (req, res) => {
     console.log(req.body);
-    
-    req.body.teacher = req.user._id;
+
     new Model(req.body).save()
         .then((result) => {
             res.status(200).json(result);
@@ -26,6 +25,8 @@ router.delete('/delete/:id', verifyToken, (req, res) => {
         });
 });
 
+
+
 router.get('/getall', (req, res) => {
     Model.find()
         .then((result) => {
@@ -37,6 +38,15 @@ router.get('/getall', (req, res) => {
 
 })
 
+router.get('/getbyclassroom/:classroomId', (req, res) => {
+    Model.find({ classroom: req.params.classroomId })
+        .then((result) => {
+            res.status(200).json(result);
+        }).catch((err) => {
+            console.log(err);
+            res.status(500).json(err);
+        });
+});
 
 
 module.exports = router;

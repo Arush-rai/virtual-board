@@ -4,11 +4,15 @@ import { useFormik } from 'formik';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import toast from 'react-hot-toast';
+import { useParams, useRouter } from 'next/navigation';
+import AddStudent from '../../add-students/[id]/page';
 
 const ManageLectures = () => {
   const [lectures, setLectures] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const token = localStorage.getItem('teacher');
+  const router = useRouter();
+  const { id } = useParams(); // Get the classroom ID from the URL
 
   const lectureForm = useFormik({
     initialValues: {
@@ -18,13 +22,15 @@ const ManageLectures = () => {
     },
 
     onSubmit: (values) => {
-      axios.post('http://localhost:5000/lectures/add', values, {
+      const payload = { ...values, classroom: id }; // Include classroomId in the payload
+
+      axios.post('http://localhost:5000/lectures/add', payload, {
         headers: {
           'x-auth-token': token
         }
       })
         .then((result) => {
-          toast.success('Class created Successfully');
+          toast.success('Lecture created Successfully');
           setShowForm(false);
           lectureForm.resetForm();
           fetchLectures(); // Refetch lectures after adding....
@@ -36,9 +42,11 @@ const ManageLectures = () => {
 
   const fetchLectures = async () => {
     try {
-      const response = await axios.get("http://localhost:5000/lectures/getall", {
+      const response = await axios.get(`http://localhost:5000/lectures/getbyclassroom/${id}`, {
         headers: { "x-auth-token": token }
       });
+      console.log(response.data);
+      
       setLectures(response.data);
     } catch (error) {
       toast.error("Failed to fetch lectures");
@@ -47,13 +55,14 @@ const ManageLectures = () => {
 
   useEffect(() => {
     fetchLectures();
-  }, []);
+  }, [id]); // Adding router.isReady and id as dependencies
 
   const deletelectures = async (id) => {
     try {
       await axios.delete(`http://localhost:5000/lectures/delete/${id}`, {
         headers: { "x-auth-token": token }
       });
+      
       setLectures(prev => prev.filter((lecture) => lecture._id !== id));
       toast.success("Lecture deleted successfully");
     } catch (error) {
@@ -131,11 +140,11 @@ const ManageLectures = () => {
             className="bg-green-500 text-white text-2xl px-3 py-1 rounded-full hover:bg-green-600"
             onClick={() => setShowForm(!showForm)}
           >
-            {showForm ? '−':'+'}
+            {showForm ? '-':'+'}
           </button>
         </div>
         </div>
-        
+        <AddStudent id={id} /> {/* Pass the classroom ID to AddStudent component */}
       </div>
     </>
   );

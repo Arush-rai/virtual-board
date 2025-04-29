@@ -4,34 +4,16 @@ import { useFormik } from 'formik';
 import Link from 'next/link';
 import React from 'react'
 import toast from 'react-hot-toast';
-import * as Yup from 'yup'
 
 const signup = () => {
-  const signupSchema = Yup.object().shape({
-    email: Yup.string()
-      .email('Please enter a valid email')
-      .required('Email is required'),
-    password: Yup.string()
-      .min(8, 'password must contain at least 8 characters')
-      .matches(/[a-z]/, 'password must contain at least one lowercase')
-      .matches(/[A-Z]/, 'password must contain at least one uppercase')
-      .matches(/[\d]/, 'password must contain at least one number')
-      .required('password is required'),
-      confirmPassword: Yup.string()
-      .min(8, 'password must contain at least 8 characters')
-      .matches(/[a-z]/, 'password must contain at least one lowercase')
-      .matches(/[A-Z]/, 'password must contain at least one uppercase')
-      .matches(/[\d]/, 'password must contain at least one number')
-      .required('password is required')
-  })
   const signupForm = useFormik({
     initialValues: {
-      name: '',
+     
       email: '',
       password: '',
       confirmPassword: ''
     },
-  
+
     onSubmit: (values) => {
       console.log(values);
       axios.post('http://localhost:5000/student/add', values)
@@ -41,9 +23,7 @@ const signup = () => {
           toast.error('Something went wrong');
         });
     },
-    validationSchema: signupSchema
   });
-
 
   return (
     <div className='px-10'>

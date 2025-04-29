@@ -18,26 +18,29 @@ router.post('/add', verifyToken, (req, res) => {
         });
 });
 
-router.post('/addstudents', verifyToken, async (req, res) => {
-    const { classId, studentEmails } = req.body;
-
-    if (!classId || !Array.isArray(studentEmails)) {
-        return res.status(400).json({ error: 'Invalid input. Provide classId and an array of student emails.' });
-    }
+router.post('/addstudents', async (req, res) => {
+    const { classId, studentEmail } = req.body;
+    console.log(classId, studentEmail);
+    
+    // if (!classId || !Array.isArray(studentEmail)) {
+    //     return res.status(400).json({ error: 'Invalid input. Provide classId and an array of student emails.' });
+    // }
 
     try {
         // Fetch student IDs based on emails
-        const students = await StudentModel.find({ email: { $in: studentEmails } }, '_id');
-        const studentIds = students.map(student => student._id);
+        const student = await StudentModel.findOne({ email: studentEmail });
+        console.log(student);
+        
+        // const studentIds = students.map(student => student._id);
 
-        if (studentIds.length === 0) {
+        if (!student) {
             return res.status(404).json({ error: 'No students found for the provided emails.' });
         }
 
         // Update the class with the fetched student IDs
         const updatedClass = await Model.findByIdAndUpdate(
             classId,
-            { $addToSet: { students: { $each: studentIds } } }, // Add students without duplicates
+            { $push: { students: student._id } }, // Add students without duplicates
             { new: true } // Return the updated document
         );
 
