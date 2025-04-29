@@ -1,9 +1,9 @@
 'use client';
 import { TbRectangle } from "react-icons/tb";
 import { IoMdDownload } from "react-icons/io";
-import { FaLongArrowAltRight } from "react-icons/fa";
+import { FaLongArrowAltRight, FaStar } from "react-icons/fa";
 import { LuPencil } from "react-icons/lu";
-import { GiArrowCursor } from "react-icons/gi";
+import { GiArrowCursor, GiTriangleTarget } from "react-icons/gi";
 import { FaRegCircle } from "react-icons/fa6";
 import {
   Arrow,
@@ -13,6 +13,7 @@ import {
   Rect,
   Stage,
   Transformer,
+  Star,
 } from "react-konva";
 import { useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
@@ -26,6 +27,12 @@ const Whiteboard = () => {
   const [circles, setCircles] = useState([]);
   const [arrows, setArrows] = useState([]);
   const [scribbles, setScribbles] = useState([]);
+  const [triangles, setTriangles] = useState([]);
+  const [stars, setStars] = useState([]);
+  const [isErasing, setIsErasing] = useState(false);
+  const [brushSize, setBrushSize] = useState(5);
+  const [history, setHistory] = useState([]);
+  const [redoStack, setRedoStack] = useState([]);
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -34,8 +41,41 @@ const Whiteboard = () => {
 
   const isDraggable = action === ACTIONS.SELECT;
 
+  function handleUndo() {
+    if (history.length > 0) {
+      const lastState = history.pop();
+      setRedoStack([...redoStack, lastState]);
+      setScribbles(lastState.scribbles);
+      setRectangles(lastState.rectangles);
+      setCircles(lastState.circles);
+      setTriangles(lastState.triangles);
+      setStars(lastState.stars);
+    }
+  }
+
+  function handleRedo() {
+    if (redoStack.length > 0) {
+      const nextState = redoStack.pop();
+      setHistory([...history, nextState]);
+      setScribbles(nextState.scribbles);
+      setRectangles(nextState.rectangles);
+      setCircles(nextState.circles);
+      setTriangles(nextState.triangles);
+      setStars(nextState.stars);
+    }
+  }
+
+  function clearCanvas() {
+    setHistory([...history, { scribbles, rectangles, circles, triangles, stars }]);
+    setScribbles([]);
+    setRectangles([]);
+    setCircles([]);
+    setTriangles([]);
+    setStars([]);
+  }
+
   function onPointerDown() {
-    if (action === ACTIONS.SELECT) return;
+    if (action === ACTIONS.SELECT || isErasing) return;
 
     const stage = stageRef.current;
     const { x, y } = stage.getPointerPosition();
@@ -43,6 +83,8 @@ const Whiteboard = () => {
 
     currentShapeId.current = id;
     isPaining.current = true;
+
+    setHistory([...history, { scribbles, rectangles, circles, triangles, stars }]);
 
     switch (action) {
       case ACTIONS.RECTANGLE:
@@ -70,7 +112,32 @@ const Whiteboard = () => {
           },
         ]);
         break;
-
+      case ACTIONS.TRIANGLE:
+        setTriangles((triangles) => [
+          ...triangles,
+          {
+            id,
+            x,
+            y,
+            size: 30,
+            fillColor,
+          },
+        ]);
+        break;
+      case ACTIONS.STAR:
+        setStars((stars) => [
+          ...stars,
+          {
+            id,
+            x,
+            y,
+            points: 5,
+            innerRadius: 10,
+            outerRadius: 20,
+            fillColor,
+          },
+        ]);
+        break;
       case ACTIONS.ARROW:
         setArrows((arrows) => [
           ...arrows,
@@ -88,13 +155,15 @@ const Whiteboard = () => {
             id,
             points: [x, y],
             fillColor,
+            brushSize,
           },
         ]);
         break;
     }
   }
+
   function onPointerMove() {
-    if (action === ACTIONS.SELECT || !isPaining.current) return;
+    if (action === ACTIONS.SELECT || !isPaining.current || isErasing) return;
 
     const stage = stageRef.current;
     const { x, y } = stage.getPointerPosition();
@@ -124,6 +193,32 @@ const Whiteboard = () => {
               };
             }
             return circle;
+          })
+        );
+        break;
+      case ACTIONS.TRIANGLE:
+        setTriangles((triangles) =>
+          triangles.map((triangle) => {
+            if (triangle.id === currentShapeId.current) {
+              return {
+                ...triangle,
+                size: Math.abs(x - triangle.x),
+              };
+            }
+            return triangle;
+          })
+        );
+        break;
+      case ACTIONS.STAR:
+        setStars((stars) =>
+          stars.map((star) => {
+            if (star.id === currentShapeId.current) {
+              return {
+                ...star,
+                outerRadius: Math.abs(x - star.x),
+              };
+            }
+            return star;
           })
         );
         break;
@@ -157,6 +252,45 @@ const Whiteboard = () => {
   }
 
   function onPointerUp() {
+    if (isErasing) {
+      const stage = stageRef.current;
+      const { x, y } = stage.getPointerPosition();
+
+      setRectangles((rectangles) =>
+        rectangles.filter(
+          (rect) =>
+            !(
+              x >= rect.x &&
+              x <= rect.x + rect.width &&
+              y >= rect.y &&
+              y <= rect.y + rect.height
+            )
+        )
+      );
+      setCircles((circles) =>
+        circles.filter(
+          (circle) =>
+            Math.sqrt((x - circle.x) ** 2 + (y - circle.y) ** 2) > circle.radius
+        )
+      );
+      setTriangles((triangles) =>
+        triangles.filter((triangle) => Math.abs(x - triangle.x) > triangle.size)
+      );
+      setStars((stars) =>
+        stars.filter((star) => Math.abs(x - star.x) > star.outerRadius)
+      );
+      setScribbles((scribbles) =>
+        scribbles.filter(
+          (scribble) =>
+            !scribble.points.some(
+              (point, index) =>
+                index % 2 === 0 &&
+                Math.abs(point - x) < 5 &&
+                Math.abs(scribble.points[index + 1] - y) < 5
+            )
+        )
+      );
+    }
     isPaining.current = false;
   }
 
@@ -182,6 +316,16 @@ const Whiteboard = () => {
         {/* Controls */}
         <div className="absolute top-0 z-10 w-full py-2 ">
           <div className="flex justify-center items-center gap-3 py-2 px-3 w-fit mx-auto border shadow-lg rounded-lg">
+            <button
+              className={
+                isErasing
+                  ? "bg-red-300 p-1 rounded"
+                  : "p-1 hover:bg-red-100 rounded"
+              }
+              onClick={() => setIsErasing(!isErasing)}
+            >
+              Eraser
+            </button>
             <button
               className={
                 action === ACTIONS.SELECT
@@ -211,6 +355,26 @@ const Whiteboard = () => {
               onClick={() => setAction(ACTIONS.CIRCLE)}
             >
               <FaRegCircle size={"1.5rem"} />
+            </button>
+            <button
+              className={
+                action === ACTIONS.TRIANGLE
+                  ? "bg-violet-300 p-1 rounded"
+                  : "p-1 hover:bg-violet-100 rounded"
+              }
+              onClick={() => setAction(ACTIONS.TRIANGLE)}
+            >
+              <GiTriangleTarget size={"2rem"} />
+            </button>
+            <button
+              className={
+                action === ACTIONS.STAR
+                  ? "bg-violet-300 p-1 rounded"
+                  : "p-1 hover:bg-violet-100 rounded"
+              }
+              onClick={() => setAction(ACTIONS.STAR)}
+            >
+              <FaStar size={"2rem"} />
             </button>
             <button
               className={
@@ -245,6 +409,19 @@ const Whiteboard = () => {
             <button onClick={handleExport}>
               <IoMdDownload size={"1.5rem"} />
             </button>
+
+            <button onClick={handleUndo} className="p-1 hover:bg-gray-100 rounded">Undo</button>
+            <button onClick={handleRedo} className="p-1 hover:bg-gray-100 rounded">Redo</button>
+            <button onClick={clearCanvas} className="p-1 hover:bg-gray-100 rounded">Clear</button>
+            <input
+              type="range"
+              min="1"
+              max="20"
+              value={brushSize}
+              onChange={(e) => setBrushSize(Number(e.target.value))}
+              className="w-20"
+            />
+            <span>Brush Size: {brushSize}</span>
           </div>
         </div>
         {/* Canvas */}
@@ -297,6 +474,40 @@ const Whiteboard = () => {
                 onClick={onClick}
               />
             ))}
+            {triangles.map((triangle) => (
+              <Line
+                key={triangle.id}
+                points={[
+                  triangle.x,
+                  triangle.y,
+                  triangle.x + triangle.size,
+                  triangle.y,
+                  triangle.x + triangle.size / 2,
+                  triangle.y - triangle.size,
+                ]}
+                closed
+                fill={triangle.fillColor}
+                stroke={strokeColor}
+                strokeWidth={2}
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
+            {stars.map((star) => (
+              <Star
+                key={star.id}
+                x={star.x}
+                y={star.y}
+                numPoints={star.points}
+                innerRadius={star.innerRadius}
+                outerRadius={star.outerRadius}
+                fill={star.fillColor}
+                stroke={strokeColor}
+                strokeWidth={2}
+                draggable={isDraggable}
+                onClick={onClick}
+              />
+            ))}
             {arrows.map((arrow) => (
               <Arrow
                 key={arrow.id}
@@ -315,9 +526,8 @@ const Whiteboard = () => {
                 lineCap="round"
                 lineJoin="round"
                 points={scribble.points}
-                stroke={strokeColor}
-                strokeWidth={2}
-                fill={scribble.fillColor}
+                stroke={scribble.fillColor}
+                strokeWidth={scribble.brushSize}
                 draggable={isDraggable}
                 onClick={onClick}
               />

@@ -11,12 +11,11 @@ const ManageClassrooms = () => {
   useEffect(() => {
     const fetchClassrooms = async () => {
       try {
-        const response = await axios.get("http://localhost:5000/classroom/getall", {
+        const response = await axios.get(`http://localhost:5000/classroom/getbyteacher`, {
           headers: { "x-auth-token": token }
         });
         setClassrooms(response.data);
         console.log(response.data);
-        
       } catch (error) {
         toast.error("Failed to fetch classrooms");
       }

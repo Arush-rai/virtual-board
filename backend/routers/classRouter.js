@@ -74,8 +74,22 @@ router.get('/getall', (req, res) => {
             res.status(500).json(err);
         });
 
-})
+});
 
+router.get('/getbyteacher', verifyToken, async (req, res) => {
+    try {
+        // Find classrooms created by the teacher
+        const classrooms = await Model.find({ teacher: req.user._id });
 
+        if (!classrooms || classrooms.length === 0) {
+            return res.status(404).json({ error: 'No classrooms found for this teacher.' });
+        }
+
+        res.status(200).json(classrooms);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: 'Failed to fetch classrooms.' });
+    }
+});
 
 module.exports = router;

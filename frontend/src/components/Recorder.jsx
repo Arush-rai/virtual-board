@@ -4,9 +4,9 @@ import toast from 'react-hot-toast';
 
 const Recorder = () => {
   const [stream, setStream] = useState(null);
+  const [webcamStream, setWebcamStream] = useState(null);
   const [recorder, setRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [videoQuality, setVideoQuality] = useState('hd');
   const [recordedBlob, setRecordedBlob] = useState(null);
   const [timer, setTimer] = useState(0);
   const [savedVideos, setSavedVideos] = useState([]);
@@ -40,25 +40,35 @@ const Recorder = () => {
   const toggleScreenShare = async () => {
     if (!isRecording) {
       try {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
           video: true,
-          audio: {
-            echoCancellation: true,
-            noiseSuppression: true,
-            sampleRate: 44100,
-          },
+          audio: true,
         });
-        setStream(stream);
-        toast.success('Screen sharing started');
+
+        const webcamStream = await navigator.mediaDevices.getUserMedia({
+          video: { width: 320, height: 240 },
+          audio: true,
+        });
+
+        const combinedStream = new MediaStream([
+          ...screenStream.getVideoTracks(),
+          ...webcamStream.getVideoTracks(),
+          ...screenStream.getAudioTracks(),
+          ...webcamStream.getAudioTracks(),
+        ]);
+
+        setStream(combinedStream);
+        setWebcamStream(webcamStream);
+        toast.success('Screen + Webcam sharing started');
       } catch (err) {
-        console.error('Error accessing screen or audio:', err);
-        toast.error('Error accessing screen or audio. Please try again.');
+        console.error('Error accessing screen or webcam:', err);
+        toast.error('Error accessing screen or webcam. Please try again.');
       }
     } else {
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      if (stream) stream.getTracks().forEach((track) => track.stop());
+      if (webcamStream) webcamStream.getTracks().forEach((track) => track.stop());
       setStream(null);
+      setWebcamStream(null);
     }
   };
 
@@ -92,10 +102,10 @@ const Recorder = () => {
       setIsRecording(false);
       setRecorder(null);
     }
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-      setStream(null);
-    }
+    if (stream) stream.getTracks().forEach((track) => track.stop());
+    if (webcamStream) webcamStream.getTracks().forEach((track) => track.stop());
+    setStream(null);
+    setWebcamStream(null);
   };
 
   const handleDownload = () => {
@@ -111,40 +121,15 @@ const Recorder = () => {
     }
   };
 
-  const getVideoConstraints = (quality) => {
-    const constraints = {
-      video: true,
-      audio: { noiseSuppression: false, echoCancellation: false },
-    };
-
-    if (quality === 'hd') {
-      constraints.video = {
-        width: { ideal: 1920 },
-        height: { ideal: 1080 },
-      };
-    } else if (quality === 'sd') {
-      constraints.video = {
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-      };
-    } else if (quality === 'ld') {
-      constraints.video = {
-        width: { ideal: 640 },
-        height: { ideal: 480 },
-      };
-    }
-
-    return constraints;
-  };
-
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start px-4 py-12">
       <div className="w-full max-w-3xl bg-white shadow-xl rounded-lg p-8">
-        <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">🎥 Screen Recorder</h1>
+        <h1 className="text-3xl font-bold text-center text-gray-800 mb-4">🎥 Screen + Webcam Recorder</h1>
 
         <div className="text-center mb-6">
           <p className="text-lg text-gray-600">
-            ⏱️ Recording Time: <span className="font-mono font-semibold text-blue-600">{formatTime(timer)}</span>
+            ⏱️ Recording Time:{' '}
+            <span className="font-mono font-semibold text-blue-600">{formatTime(timer)}</span>
           </p>
         </div>
 
@@ -155,7 +140,7 @@ const Recorder = () => {
               stream ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
             }`}
           >
-            {stream ? '🛑 Stop Screen Sharing' : '🟢 Start Screen Sharing'}
+            {stream ? '🛑 Stop Sharing' : '🟢 Start Sharing'}
           </button>
 
           <button
@@ -202,6 +187,18 @@ const Recorder = () => {
           </div>
         )}
       </div>
+
+      {/* Webcam Preview */}
+      {webcamStream && (
+        <video
+          ref={(video) => {
+            if (video) video.srcObject = webcamStream;
+          }}
+          autoPlay
+          muted
+          className="fixed bottom-6 right-6 w-40 h-28 border-4 border-white rounded-lg shadow-lg z-50"
+        />
+      )}
 
       {/* Saved Videos Section */}
       {savedVideos.length > 0 && (
