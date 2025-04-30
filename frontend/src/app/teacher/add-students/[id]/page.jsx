@@ -3,6 +3,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { toast } from 'react-hot-toast'; // Replace react-toastify with react-hot-toast
 
+const ISSERVER = typeof window === 'undefined';
+
 const AddStudent = ({ id }) => {
   const [emails, setEmails] = useState(['']);
 
@@ -23,19 +25,21 @@ const AddStudent = ({ id }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      const payload = { studentEmail: emails[0], classId: id }; // Include classroomId in the payload
+    if (!ISSERVER) {
+      try {
+        const payload = { studentEmail: emails[0], classId: id }; // Include classroomId in the payload
 
-      const response = await axios.post('http://localhost:5000/classroom/addstudents', payload, {
-        headers: {
-          'x-auth-token': localStorage.getItem('teacher'),
-        },
-      });
+        const response = await axios.post('http://localhost:5000/classroom/addstudents', payload, {
+          headers: {
+            'x-auth-token': localStorage.getItem('teacher'),
+          },
+        });
 
-      toast.success('Students added successfully'); // Use react-hot-toast
-      setEmails(['']); // Reset the email fields
-    } catch (error) {
-      toast.error('Failed to add students'); // Use react-hot-toast
+        toast.success('Students added successfully'); // Use react-hot-toast
+        setEmails(['']); // Reset the email fields
+      } catch (error) {
+        toast.error('Failed to add students'); // Use react-hot-toast
+      }
     }
   };
 

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 
-const Recorder = () => {
+const Recorder = ({ lectureId }) => {
   const [stream, setStream] = useState(null);
   const [webcamStream, setWebcamStream] = useState(null);
   const [recorder, setRecorder] = useState(null);
@@ -72,6 +72,7 @@ const Recorder = () => {
     }
   };
 
+
   const startRecording = () => {
     if (stream) {
       const mediaRecorder = new MediaRecorder(stream);
@@ -121,6 +122,37 @@ const Recorder = () => {
     }
   };
 
+  const handleUpload = async () => {
+    if (!recordedBlob) return;
+
+    const formData = new FormData();
+    formData.append('video', await fetch(recordedBlob).then(r => r.blob()), 'recording.webm');
+    formData.append('title', 'Lecture Recording');
+    formData.append('duration', timer);
+    formData.append('type', 'screen+webcam');
+    formData.append('lecture', lectureId);
+
+    try {
+      const res = await fetch('/api/recordings/upload', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Uploaded to Cloudinary!');
+        setSavedVideos((prev) => [...prev, { url: data.url, title: data.title }]);
+        setRecordedBlob(null);
+      } else {
+        toast.error(data.error || 'Upload failed');
+      }
+    } catch (err) {
+      toast.error('Upload error');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col items-center justify-start px-4 py-12">
       <div className="w-full max-w-3xl bg-white shadow-xl rounded-lg p-8">
@@ -136,9 +168,8 @@ const Recorder = () => {
         <div className="flex flex-wrap justify-center gap-4 mb-6">
           <button
             onClick={toggleScreenShare}
-            className={`px-6 py-3 rounded-md font-semibold text-white transition ${
-              stream ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-            }`}
+            className={`px-6 py-3 rounded-md font-semibold text-white transition ${stream ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
+              }`}
           >
             {stream ? '🛑 Stop Sharing' : '🟢 Start Sharing'}
           </button>
@@ -146,11 +177,10 @@ const Recorder = () => {
           <button
             onClick={startRecording}
             disabled={isRecording || !stream}
-            className={`px-6 py-3 rounded-md font-semibold transition ${
-              isRecording || !stream
+            className={`px-6 py-3 rounded-md font-semibold transition ${isRecording || !stream
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-blue-600 hover:bg-blue-700 text-white'
-            }`}
+              }`}
           >
             🎬 Start Recording
           </button>
@@ -158,11 +188,10 @@ const Recorder = () => {
           <button
             onClick={stopRecording}
             disabled={!isRecording}
-            className={`px-6 py-3 rounded-md font-semibold transition ${
-              !isRecording
+            className={`px-6 py-3 rounded-md font-semibold transition ${!isRecording
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-yellow-600 hover:bg-yellow-700 text-white'
-            }`}
+              }`}
           >
             🟥 Stop Recording
           </button>
@@ -170,13 +199,23 @@ const Recorder = () => {
           <button
             onClick={handleDownload}
             disabled={!recordedBlob}
-            className={`px-6 py-3 rounded-md font-semibold transition ${
-              !recordedBlob
+            className={`px-6 py-3 rounded-md font-semibold transition ${!recordedBlob
                 ? 'bg-gray-400 cursor-not-allowed text-white'
                 : 'bg-purple-600 hover:bg-purple-700 text-white'
-            }`}
+              }`}
           >
             💾 Save to Page
+          </button>
+
+          <button
+            onClick={handleUpload}
+            disabled={!recordedBlob}
+            className={`px-6 py-3 rounded-md font-semibold transition ${!recordedBlob
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+              }`}
+          >
+            ☁️ Upload to Cloud
           </button>
         </div>
 

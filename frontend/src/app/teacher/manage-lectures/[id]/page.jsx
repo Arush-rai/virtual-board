@@ -13,6 +13,7 @@ const ManageLectures = () => {
   const token = localStorage.getItem('teacher');
   const router = useRouter();
   const { id } = useParams(); // Get the classroom ID from the URL
+  const ISSERVER = typeof window === 'undefined';
 
   const lectureForm = useFormik({
     initialValues: {
@@ -23,33 +24,36 @@ const ManageLectures = () => {
 
     onSubmit: (values) => {
       const payload = { ...values, classroom: id }; // Include classroomId in the payload
-
-      axios.post('http://localhost:5000/lectures/add', payload, {
-        headers: {
-          'x-auth-token': token
-        }
-      })
-        .then((result) => {
-          toast.success('Lecture created Successfully');
-          setShowForm(false);
-          lectureForm.resetForm();
-          fetchLectures(); // Refetch lectures after adding....
-        }).catch((err) => {
-          toast.error('Something went wrong');
-        });
+      if (!ISSERVER) {
+        axios.post('http://localhost:5000/lectures/add', payload, {
+          headers: {
+            'x-auth-token': token
+          }
+        })
+          .then((result) => {
+            toast.success('Lecture created Successfully');
+            setShowForm(false);
+            lectureForm.resetForm();
+            fetchLectures(); // Refetch lectures after adding....
+          }).catch((err) => {
+            toast.error('Something went wrong');
+          });
+      }
     },
   }); 
 
   const fetchLectures = async () => {
-    try {
-      const response = await axios.get(`http://localhost:5000/lectures/getbyclassroom/${id}`, {
-        headers: { "x-auth-token": token }
-      });
-      console.log(response.data);
-      
-      setLectures(response.data);
-    } catch (error) {
-      toast.error("Failed to fetch lectures");
+    if (!ISSERVER) {
+      try {
+        const response = await axios.get(`http://localhost:5000/lectures/getbyclassroom/${id}`, {
+          headers: { "x-auth-token": token }
+        });
+        console.log(response.data);
+        
+        setLectures(response.data);
+      } catch (error) {
+        toast.error("Failed to fetch lectures");
+      }
     }
   };
 
@@ -58,15 +62,17 @@ const ManageLectures = () => {
   }, [id]); // Adding router.isReady and id as dependencies
 
   const deletelectures = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/lectures/delete/${id}`, {
-        headers: { "x-auth-token": token }
-      });
-      
-      setLectures(prev => prev.filter((lecture) => lecture._id !== id));
-      toast.success("Lecture deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete lecture");
+    if (!ISSERVER) {
+      try {
+        await axios.delete(`http://localhost:5000/lectures/delete/${id}`, {
+          headers: { "x-auth-token": token }
+        });
+        
+        setLectures(prev => prev.filter((lecture) => lecture._id !== id));
+        toast.success("Lecture deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete lecture");
+      }
     }
   }
 

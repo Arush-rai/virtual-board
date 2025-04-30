@@ -6,6 +6,8 @@ import { useRouter } from 'next/navigation';
 import React from 'react'
 import toast from 'react-hot-toast';
 
+const ISSERVER = typeof window === 'undefined';
+
 const Teacherlogin = () => {
 
   const router = useRouter();
@@ -17,21 +19,22 @@ const Teacherlogin = () => {
     },
     onSubmit: (values) => {
       console.log(values);
-      axios.post('http://localhost:5000/student/authenticate', values)
-        .then((res) => {
-          console.log(res.data);
-          toast.success('Login Successfull');
-          // setUserLoggedIn(true)
-          // setUserLoggedIn(data)
-          const data = res.data
-          localStorage.setItem('student', data.token)
-          document.cookie = "token=" + data._id
-          // router.push('/')
-
-        }).catch((err) => {
-          console.log(err);
-          toast.error('Login Failed');
-        });
+      if (!ISSERVER) {
+        axios.post('http://localhost:5000/student/authenticate', values)
+          .then((res) => {
+            console.log(res.data);
+            toast.success('Login Successfull');
+            // setUserLoggedIn(true)
+            // setUserLoggedIn(data)
+            const data = res.data
+            localStorage.setItem('student', data.token);
+            document.cookie = "token=" + data._id
+            // router.push('/')
+          }).catch((err) => {
+            console.log(err);
+            toast.error('Login Failed');
+          });
+      }
     }
   })
 

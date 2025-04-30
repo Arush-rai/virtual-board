@@ -4,34 +4,40 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import Link from "next/link";
 
+const ISSERVER = typeof window === 'undefined';
+
 const ManageClassrooms = () => {
   const [classrooms, setClassrooms] = useState([]);
   const token = localStorage.getItem("teacher");
 
   useEffect(() => {
-    const fetchClassrooms = async () => {
-      try {
-        const response = await axios.get(`http://localhost:5000/classroom/getbyteacher`, {
-          headers: { "x-auth-token": token }
-        });
-        setClassrooms(response.data);
-        console.log(response.data);
-      } catch (error) {
-        toast.error("Failed to fetch classrooms");
-      }
-    };
-    fetchClassrooms();
+    if (!ISSERVER) {
+      const fetchClassrooms = async () => {
+        try {
+          const response = await axios.get(`http://localhost:5000/classroom/getbyteacher`, {
+            headers: { "x-auth-token": token }
+          });
+          setClassrooms(response.data);
+          console.log(response.data);
+        } catch (error) {
+          toast.error("Failed to fetch classrooms");
+        }
+      };
+      fetchClassrooms();
+    }
   }, []);
 
   const deleteClassroom = async (id) => {
-    try {
-      await axios.delete(`http://localhost:5000/classroom/delete/${id}`, {
-        headers: { "x-auth-token": token }
-      });
-      setClassrooms(classrooms.filter((classroom) => classroom._id !== id));
-      toast.success("Classroom deleted successfully");
-    } catch (error) {
-      toast.error("Failed to delete classroom");
+    if (!ISSERVER) {
+      try {
+        await axios.delete(`http://localhost:5000/classroom/delete/${id}`, {
+          headers: { "x-auth-token": token }
+        });
+        setClassrooms(classrooms.filter((classroom) => classroom._id !== id));
+        toast.success("Classroom deleted successfully");
+      } catch (error) {
+        toast.error("Failed to delete classroom");
+      }
     }
   };
 

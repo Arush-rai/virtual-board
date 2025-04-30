@@ -9,6 +9,7 @@ import toast from 'react-hot-toast';
 const Teacherlogin = () => {
 
   const router = useRouter();
+  const ISSERVER = typeof window === 'undefined';
 
   const loginForm = useFormik({
     initialValues: {
@@ -17,22 +18,22 @@ const Teacherlogin = () => {
     },
     onSubmit: (values) => {
       console.log(values);
-      axios.post('http://localhost:5000/teacher/authenticate', values)
-        .then((res) => {
-          console.log(res.data);
-          
-          toast.success('Login Successfull');
-          // setUserLoggedIn(true)
-          // setUserLoggedIn(data)
-          const data = res.data
-          localStorage.setItem('teacher', data.token)
-          document.cookie = "token=" + data._id
-          router.push('/teacher/manage-classroom')
+      if (!ISSERVER) {
+        axios.post('http://localhost:5000/teacher/authenticate', values)
+          .then((res) => {
+            console.log(res.data);
+            
+            toast.success('Login Successfull');
+            const data = res.data
+            localStorage.setItem('teacher', data.token)
+            document.cookie = "token=" + data._id
+            router.push('/teacher/manage-classroom')
 
-        }).catch((err) => {
-          console.log(err);
-          toast.error('Login Failed');
-        });
+          }).catch((err) => {
+            console.log(err);
+            toast.error('Login Failed');
+          });
+      }
     }
   })
 
