@@ -1,18 +1,20 @@
 'use client';
 import React, { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
+import axios from 'axios';
 
 const Recorder = ({ lectureId }) => {
-  const [stream, setStream] = useState(null);
+  const [screenStream, setScreenStream] = useState(null);
   const [webcamStream, setWebcamStream] = useState(null);
   const [recorder, setRecorder] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
-  const [recordedBlob, setRecordedBlob] = useState(null);
+  const [recordedBlobScreen, setRecordedBlobScreen] = useState(null);
+  const [recordedBlobWebcam, setRecordedBlobWebcam] = useState(null);
   const [timer, setTimer] = useState(0);
   const [savedVideos, setSavedVideos] = useState([]);
 
   useEffect(() => {
-    window.onbeforeunload = function () {
+    window.onbeforeunload = () => {
       return 'Do you want to refresh the window?';
     };
   }, []);
@@ -40,116 +42,130 @@ const Recorder = ({ lectureId }) => {
   const toggleScreenShare = async () => {
     if (!isRecording) {
       try {
-        const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        const screen = await navigator.mediaDevices.getDisplayMedia({
           video: true,
-          audio: true,
+          audio: true, // system audio
         });
 
-        const webcamStream = await navigator.mediaDevices.getUserMedia({
+        const webcam = await navigator.mediaDevices.getUserMedia({
           video: { width: 320, height: 240 },
-          audio: true,
+          audio: false, // avoid double audio
         });
 
-        const combinedStream = new MediaStream([
-          ...screenStream.getVideoTracks(),
-          ...webcamStream.getVideoTracks(),
-          ...screenStream.getAudioTracks(),
-          ...webcamStream.getAudioTracks(),
-        ]);
+        setScreenStream(screen);
+        setWebcamStream(webcam);
 
-        setStream(combinedStream);
-        setWebcamStream(webcamStream);
-        toast.success('Screen + Webcam sharing started');
+        toast.success('Screen sharing started with webcam preview');
       } catch (err) {
         console.error('Error accessing screen or webcam:', err);
-        toast.error('Error accessing screen or webcam. Please try again.');
+        toast.error('Could not access screen or webcam.');
       }
     } else {
-      if (stream) stream.getTracks().forEach((track) => track.stop());
-      if (webcamStream) webcamStream.getTracks().forEach((track) => track.stop());
-      setStream(null);
+      stopTracks(screenStream);
+      stopTracks(webcamStream);
+      setScreenStream(null);
       setWebcamStream(null);
     }
   };
 
+  const stopTracks = (stream) => {
+    if (stream) {
+      stream.getTracks().forEach((track) => track.stop());
+    }
+  };
 
   const startRecording = () => {
-    if (stream) {
-      const mediaRecorder = new MediaRecorder(stream);
-      const chunks = [];
+    if (screenStream && webcamStream) {
+      const screenRecorder = new MediaRecorder(screenStream);
+      const webcamRecorder = new MediaRecorder(webcamStream);
+      const screenChunks = [];
+      const webcamChunks = [];
 
-      mediaRecorder.ondataavailable = (e) => {
-        chunks.push(e.data);
+      screenRecorder.ondataavailable = (e) => {
+        screenChunks.push(e.data);
       };
 
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(chunks, { type: 'video/webm' });
+      webcamRecorder.ondataavailable = (e) => {
+        webcamChunks.push(e.data);
+      };
+
+      screenRecorder.onstop = () => {
+        const blob = new Blob(screenChunks, { type: 'video/webm' });
         const url = URL.createObjectURL(blob);
-        setRecordedBlob(url);
+        setRecordedBlobScreen(url);
       };
 
-      mediaRecorder.start();
+      webcamRecorder.onstop = () => {
+        const blob = new Blob(webcamChunks, { type: 'video/webm' });
+        const url = URL.createObjectURL(blob);
+        setRecordedBlobWebcam(url);
+      };
+
+      screenRecorder.start();
+      webcamRecorder.start();
       setIsRecording(true);
-      setRecorder(mediaRecorder);
+      setRecorder({ screenRecorder, webcamRecorder });
       toast.success('Recording started');
     } else {
-      toast.error('No stream to record. Please start screen sharing first.');
+      toast.error('Please start screen sharing first.');
     }
   };
 
   const stopRecording = () => {
     if (recorder) {
-      recorder.stop();
+      recorder.screenRecorder.stop();
+      recorder.webcamRecorder.stop();
       setIsRecording(false);
       setRecorder(null);
     }
-    if (stream) stream.getTracks().forEach((track) => track.stop());
-    if (webcamStream) webcamStream.getTracks().forEach((track) => track.stop());
-    setStream(null);
+    stopTracks(screenStream);
+    stopTracks(webcamStream);
+    setScreenStream(null);
     setWebcamStream(null);
   };
 
   const handleDownload = () => {
-    if (recordedBlob) {
-      const currentDate = new Date();
-      const timestamp = currentDate.toLocaleString().replace(/:/g, '-').replace(/,/g, '');
+    if (recordedBlobScreen && recordedBlobWebcam) {
+      const timestamp = new Date().toLocaleString().replace(/[:/]/g, '-').replace(/,/g, '');
       const title = `Recording ${timestamp}`;
-      const newVideo = { url: recordedBlob, title };
-
-      setSavedVideos((prev) => [...prev, newVideo]);
-      setRecordedBlob(null);
-      toast.success('Video saved to page');
+      setSavedVideos((prev) => [
+        ...prev,
+        { screenUrl: recordedBlobScreen, webcamUrl: recordedBlobWebcam, title }
+      ]);
+      setRecordedBlobScreen(null);
+      setRecordedBlobWebcam(null);
+      toast.success('Videos saved to page');
     }
   };
 
   const handleUpload = async () => {
-    if (!recordedBlob) return;
+    if (!recordedBlobScreen || !recordedBlobWebcam) return;
 
     const formData = new FormData();
-    formData.append('video', await fetch(recordedBlob).then(r => r.blob()), 'recording.webm');
+    formData.append('screen', await fetch(recordedBlobScreen).then((r) => r.blob()), 'screen.webm');
+    formData.append('webcam', await fetch(recordedBlobWebcam).then((r) => r.blob()), 'webcam.webm');
     formData.append('title', 'Lecture Recording');
     formData.append('duration', timer);
     formData.append('type', 'screen+webcam');
     formData.append('lecture', lectureId);
 
     try {
-      const res = await fetch('/api/recordings/upload', {
-        method: 'POST',
+      const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/recordings/upload`, formData, {
         headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'x-auth-token': localStorage.getItem('teacher'),
+          'Content-Type': 'multipart/form-data',
         },
-        body: formData,
       });
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Uploaded to Cloudinary!');
-        setSavedVideos((prev) => [...prev, { url: data.url, title: data.title }]);
-        setRecordedBlob(null);
-      } else {
-        toast.error(data.error || 'Upload failed');
-      }
+      const data = res.data;
+      toast.success('Uploaded to Cloudinary!');
+      setSavedVideos((prev) => [
+        ...prev,
+        { screenUrl: data.screenUrl, webcamUrl: data.webcamUrl, title: data.title },
+      ]);
+      setRecordedBlobScreen(null);
+      setRecordedBlobWebcam(null);
     } catch (err) {
-      toast.error('Upload error');
+      toast.error(err.response?.data?.error || 'Upload error');
     }
   };
 
@@ -168,19 +184,15 @@ const Recorder = ({ lectureId }) => {
         <div className="flex flex-wrap justify-center gap-4 mb-6">
           <button
             onClick={toggleScreenShare}
-            className={`px-6 py-3 rounded-md font-semibold text-white transition ${stream ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'
-              }`}
+            className={`px-6 py-3 rounded-md font-semibold text-white transition ${screenStream ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
           >
-            {stream ? '🛑 Stop Sharing' : '🟢 Start Sharing'}
+            {screenStream ? '🛑 Stop Sharing' : '🟢 Start Sharing'}
           </button>
 
           <button
             onClick={startRecording}
-            disabled={isRecording || !stream}
-            className={`px-6 py-3 rounded-md font-semibold transition ${isRecording || !stream
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-blue-600 hover:bg-blue-700 text-white'
-              }`}
+            disabled={isRecording || !screenStream || !webcamStream}
+            className={`px-6 py-3 rounded-md font-semibold transition ${isRecording || !screenStream || !webcamStream ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}
           >
             🎬 Start Recording
           </button>
@@ -188,46 +200,40 @@ const Recorder = ({ lectureId }) => {
           <button
             onClick={stopRecording}
             disabled={!isRecording}
-            className={`px-6 py-3 rounded-md font-semibold transition ${!isRecording
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-yellow-600 hover:bg-yellow-700 text-white'
-              }`}
+            className={`px-6 py-3 rounded-md font-semibold transition ${!isRecording ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-yellow-600 hover:bg-yellow-700 text-white'}`}
           >
             🟥 Stop Recording
           </button>
 
           <button
             onClick={handleDownload}
-            disabled={!recordedBlob}
-            className={`px-6 py-3 rounded-md font-semibold transition ${!recordedBlob
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-purple-600 hover:bg-purple-700 text-white'
-              }`}
+            disabled={!recordedBlobScreen || !recordedBlobWebcam}
+            className={`px-6 py-3 rounded-md font-semibold transition ${!recordedBlobScreen || !recordedBlobWebcam ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-purple-600 hover:bg-purple-700 text-white'}`}
           >
             💾 Save to Page
           </button>
 
           <button
             onClick={handleUpload}
-            disabled={!recordedBlob}
-            className={`px-6 py-3 rounded-md font-semibold transition ${!recordedBlob
-                ? 'bg-gray-400 cursor-not-allowed text-white'
-                : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-              }`}
+            disabled={!recordedBlobScreen || !recordedBlobWebcam}
+            className={`px-6 py-3 rounded-md font-semibold transition ${!recordedBlobScreen || !recordedBlobWebcam ? 'bg-gray-400 cursor-not-allowed text-white' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
           >
             ☁️ Upload to Cloud
           </button>
         </div>
 
-        {recordedBlob && (
+        {recordedBlobScreen && recordedBlobWebcam && (
           <div className="mt-6 text-center">
             <h2 className="text-xl font-semibold text-gray-700 mb-3">🎞️ Preview</h2>
-            <video src={recordedBlob} controls className="w-full rounded-md shadow-md" />
+            <div className="space-y-4">
+              <video src={recordedBlobScreen} controls className="w-full rounded-md shadow-md" />
+              <video src={recordedBlobWebcam} controls className="w-full rounded-md shadow-md" />
+            </div>
           </div>
         )}
       </div>
 
-      {/* Webcam Preview */}
+      {/* Webcam Preview (only shown live) */}
       {webcamStream && (
         <video
           ref={(video) => {
@@ -239,7 +245,7 @@ const Recorder = ({ lectureId }) => {
         />
       )}
 
-      {/* Saved Videos Section */}
+      {/* Saved Videos */}
       {savedVideos.length > 0 && (
         <div className="w-full max-w-3xl mt-10 bg-white shadow-xl rounded-lg p-6">
           <h2 className="text-2xl font-bold text-gray-800 mb-4">📁 Saved Videos</h2>
@@ -247,7 +253,10 @@ const Recorder = ({ lectureId }) => {
             {savedVideos.map((video, index) => (
               <div key={index} className="border rounded-md p-4 bg-gray-50 shadow-sm">
                 <h3 className="text-lg font-semibold text-gray-700 mb-2">{video.title}</h3>
-                <video src={video.url} controls className="w-full rounded-md" />
+                <div className="space-y-4">
+                  <video src={video.screenUrl} controls className="w-full rounded-md" />
+                  <video src={video.webcamUrl} controls className="w-full rounded-md" />
+                </div>
               </div>
             ))}
           </div>

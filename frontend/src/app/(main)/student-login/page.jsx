@@ -24,12 +24,10 @@ const Teacherlogin = () => {
           .then((res) => {
             console.log(res.data);
             toast.success('Login Successfull');
-            // setUserLoggedIn(true)
-            // setUserLoggedIn(data)
             const data = res.data
             localStorage.setItem('student', data.token);
             document.cookie = "token=" + data._id
-            // router.push('/')
+            router.push('/student/browse-classroom'); // Redirect on success
           }).catch((err) => {
             console.log(err);
             toast.error('Login Failed');

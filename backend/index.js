@@ -4,6 +4,7 @@ const studentRouter = require('./routers/studentRouter');
 const teacherRouter = require('./routers/teacherRouter');
 const classRouter = require('./routers/classRouter');
 const lectureRouter = require('./routers/lectureRouter');
+const recordingRouter = require('./routers/recordingRouter');
 
 const app = express();
 const port = 5000;
@@ -17,6 +18,7 @@ app.use('/student', studentRouter);
 app.use('/teacher', teacherRouter);
 app.use('/classroom', classRouter);
 app.use('/lectures', lectureRouter);
+app.use('/recordings', recordingRouter);
 
 app.get('/', (req, res) => {
     console.log('response from express');

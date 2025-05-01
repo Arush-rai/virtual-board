@@ -48,5 +48,16 @@ router.get('/getbyclassroom/:classroomId', (req, res) => {
         });
 });
 
+// Get lecture by ID
+router.get('/getbyid/:id', (req, res) => {
+    Model.findById(req.params.id)
+        .then((result) => {
+            if (!result) return res.status(404).json({ error: 'Lecture not found' });
+            res.status(200).json(result);
+        }).catch((err) => {
+            console.log(err);
+            res.status(500).json(err);
+        });
+});
 
 module.exports = router;

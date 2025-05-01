@@ -6,7 +6,8 @@ const mySchema = new Schema({
     topic: String,
     canvas: String,
     recording: String,
-    classroom: { type : Types.ObjectId, ref : 'classroom' },
+    material: [String],
+    classroom: { type: Types.ObjectId, ref: 'classroom' },
     createdAt: { type: Date, default: Date.now }
 });
 

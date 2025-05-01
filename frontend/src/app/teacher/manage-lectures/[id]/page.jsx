@@ -10,9 +10,10 @@ import AddStudent from '../../add-students/[id]/page';
 const ManageLectures = () => {
   const [lectures, setLectures] = useState([]);
   const [showForm, setShowForm] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false);
   const token = localStorage.getItem('teacher');
   const router = useRouter();
-  const { id } = useParams(); // Get the classroom ID from the URL
+  const { id } = useParams();
   const ISSERVER = typeof window === 'undefined';
 
   const lectureForm = useFormik({
@@ -23,7 +24,7 @@ const ManageLectures = () => {
     },
 
     onSubmit: (values) => {
-      const payload = { ...values, classroom: id }; // Include classroomId in the payload
+      const payload = { ...values, classroom: id };
       if (!ISSERVER) {
         axios.post('http://localhost:5000/lectures/add', payload, {
           headers: {
@@ -34,13 +35,13 @@ const ManageLectures = () => {
             toast.success('Lecture created Successfully');
             setShowForm(false);
             lectureForm.resetForm();
-            fetchLectures(); // Refetch lectures after adding....
+            fetchLectures();
           }).catch((err) => {
             toast.error('Something went wrong');
           });
       }
     },
-  }); 
+  });
 
   const fetchLectures = async () => {
     if (!ISSERVER) {
@@ -49,7 +50,7 @@ const ManageLectures = () => {
           headers: { "x-auth-token": token }
         });
         console.log(response.data);
-        
+
         setLectures(response.data);
       } catch (error) {
         toast.error("Failed to fetch lectures");
@@ -59,7 +60,7 @@ const ManageLectures = () => {
 
   useEffect(() => {
     fetchLectures();
-  }, [id]); // Adding router.isReady and id as dependencies
+  }, [id]);
 
   const deletelectures = async (id) => {
     if (!ISSERVER) {
@@ -67,7 +68,7 @@ const ManageLectures = () => {
         await axios.delete(`http://localhost:5000/lectures/delete/${id}`, {
           headers: { "x-auth-token": token }
         });
-        
+
         setLectures(prev => prev.filter((lecture) => lecture._id !== id));
         toast.success("Lecture deleted successfully");
       } catch (error) {
@@ -79,9 +80,21 @@ const ManageLectures = () => {
   return (
     <>
       <div className="max-w-5xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">Manage Lectures</h1>
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold">Manage Lectures</h1>
+          <button
+            className="bg-purple-500 text-white px-4 py-2 rounded-full font-semibold shadow hover:bg-purple-600 transition-colors"
+            onClick={() => setShowAddStudent(!showAddStudent)}
+          >
+            {showAddStudent ? 'Close Add Student' : 'Add Student'}
+          </button>
+        </div>
 
-        
+        {showAddStudent && (
+          <div className="mt-4 mb-8 p-6 bg-purple-50 rounded-xl shadow-lg">
+            <AddStudent id={id} />
+          </div>
+        )}
 
         {showForm && (
           <form
@@ -141,16 +154,15 @@ const ManageLectures = () => {
               <Link className='bg-blue-500 text-white px-4 py-2 ml-4 rounded' href={`/teacher/view-lectures/${lecture._id}`}>View lecture </Link>
             </div>
           ))}
-          <div className="justify-items-center mb-6">
-          <button
-            className="bg-green-500 text-white text-2xl px-3 py-1 rounded-full hover:bg-green-600"
-            onClick={() => setShowForm(!showForm)}
-          >
-            {showForm ? '-':'+'}
-          </button>
+          <div className="justify-items-center mb-6 flex flex-col items-center">
+            <button
+              className="bg-green-500 text-white text-2xl px-3 py-1 rounded-full hover:bg-green-600 mb-4"
+              onClick={() => setShowForm(!showForm)}
+            >
+              {showForm ? '-' : '+'}
+            </button>
+          </div>
         </div>
-        </div>
-        <AddStudent id={id} /> {/* Pass the classroom ID to AddStudent component */}
       </div>
     </>
   );
