@@ -3,8 +3,10 @@ import axios from 'axios';
 import { useFormik } from 'formik';
 import React from 'react';
 import toast from 'react-hot-toast';
+import { useRouter } from 'next/navigation';
 
 const AddClassRoom = () => {
+  const router = useRouter();
   const token = typeof window !== 'undefined' ? localStorage.getItem('teacher') : null;
 
   const classroomForm = useFormik({
@@ -21,6 +23,7 @@ const AddClassRoom = () => {
       })
         .then(() => {
           toast.success('Class created Successfully');
+          router.push('/teacher/manage-classroom');
         }).catch(() => {
           toast.error('Something went wrong');
         });

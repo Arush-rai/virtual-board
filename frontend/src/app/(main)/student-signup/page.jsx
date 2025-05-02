@@ -2,24 +2,30 @@
 import axios from 'axios';
 import { useFormik } from 'formik';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import React from 'react';
 import toast from 'react-hot-toast';
 
 const StudentSignup = () => {
+
+  const router = useRouter();
+
   const signupForm = useFormik({
     initialValues: {
       email: '',
       password: '',
       confirmPassword: ''
     },
-    onSubmit: (values) => {
+    onSubmit: (values, {resetForm}) => {
       if (values.password !== values.confirmPassword) {
         toast.error('Passwords do not match');
         return;
       }
       axios.post(`${process.env.NEXT_PUBLIC_API_URL}/student/add`, values)
         .then(() => {
+          resetForm();
           toast.success('Student Registered Successfully');
+          router.push('/student-login');
         }).catch(() => {
           toast.error('Something went wrong');
         });

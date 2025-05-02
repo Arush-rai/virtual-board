@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
+import axios from 'axios';
 
 const BrowseClassroom = () => {
   const [classrooms, setClassrooms] = useState([]);
@@ -9,17 +10,13 @@ const BrowseClassroom = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(`${process.env.NEXT_PUBLIC_API_URL}/classroom/getall`)
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/classroom/getall`)
       .then(res => {
-        if (!res.ok) throw new Error('Failed to fetch classrooms');
-        return res.json();
-      })
-      .then(data => {
-        setClassrooms(data);
+        setClassrooms(res.data);
         setLoading(false);
       })
       .catch(err => {
-        setError(err.message);
+        setError(err.response?.data?.message || err.message || 'Failed to fetch classrooms');
         setLoading(false);
       });
   }, []);

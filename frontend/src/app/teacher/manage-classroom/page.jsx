@@ -100,8 +100,14 @@ const ManageClassrooms = () => {
           ))}
         </div>
         {classrooms.length === 0 && (
-          <div className="text-center text-lg text-gray-500 mt-10">
-            No classrooms found. 🚫
+          <div className="text-center text-lg text-gray-500 mt-10 flex flex-col items-center gap-4">
+            <div>No classrooms found. 🚫</div>
+            <Link
+              href="/teacher/add-classroom"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl shadow hover:from-pink-500 hover:to-purple-500 transition-colors"
+            >
+              + Add New Classroom
+            </Link>
           </div>
         )}
       </div>
