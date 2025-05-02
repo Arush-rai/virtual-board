@@ -29,6 +29,12 @@ const StudentNavbar = () => {
             Home
           </Link>
           <Link
+            href="/about"
+            className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg shadow hover:bg-blue-100 transition-colors"
+          >
+            About
+          </Link>
+          <Link
             href="/student/browse-classroom"
             className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg shadow hover:bg-blue-100 transition-colors"
           >
