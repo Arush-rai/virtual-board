@@ -2,19 +2,39 @@
 import axios from 'axios';
 import { useFormik } from 'formik';
 import Link from 'next/link';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import toast from 'react-hot-toast';
 import { useParams, useRouter } from 'next/navigation';
 import AddStudent from '../../add-students/[id]/page';
 
 const ManageLectures = () => {
   const [lectures, setLectures] = useState([]);
+  const [classroom, setClassroom] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false);
   const token = localStorage.getItem('teacher');
   const router = useRouter();
   const { id } = useParams();
   const ISSERVER = typeof window === 'undefined';
+
+  // Separated fetchClassroom function
+  const fetchClassroom = useCallback(async () => {
+    if (!ISSERVER && id) {
+      try {
+        const res = await axios.get(`http://localhost:5000/classroom/getbyid/${id}`, {
+          headers: { 'x-auth-token': token }
+        });
+        setClassroom(res.data);
+      } catch {
+        setClassroom(null);
+      }
+    }
+  }, [id, token, ISSERVER]);
+
+  // Fetch classroom details on mount and when id changes
+  useEffect(() => {
+    fetchClassroom();
+  }, [fetchClassroom]);
 
   const lectureForm = useFormik({
     initialValues: {
@@ -76,9 +96,37 @@ const ManageLectures = () => {
     }
   }
 
+  // Handler to update classroom details after adding students
+  const handleStudentAdded = () => {
+    fetchClassroom();
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 py-10 px-4">
       <div className="max-w-5xl mx-auto">
+        {/* Classroom Details */}
+        {classroom && (
+          <div className="mb-8 p-6 rounded-2xl shadow-lg border border-blue-200 bg-white/80">
+            <h2 className="text-2xl font-bold text-blue-700 mb-2">{classroom.name}</h2>
+            <p className="text-gray-700 mb-1"><span className="font-semibold">Subject:</span> {classroom.subject}</p>
+            <p className="text-gray-600"><span className="font-semibold">Schedule:</span> {classroom.timeslot}</p>
+            {/* Students List */}
+            <div className="mt-4">
+              <h3 className="text-lg font-semibold text-purple-700 mb-2">Students in this classroom:</h3>
+              {classroom.students && classroom.students.length > 0 ? (
+                <ul className="list-disc list-inside space-y-1">
+                  {classroom.students.map((student) => (
+                    <li key={student._id} className="text-gray-800">
+                      {student.name} <span className="text-gray-500 text-sm">({student.email})</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="text-gray-500">No students added yet.</div>
+              )}
+            </div>
+          </div>
+        )}
         {/* Header Box for Lectures and Action Buttons */}
         <div
           className="flex flex-col sm:flex-row items-center justify-between mb-10 rounded-2xl shadow-lg border border-purple-200 px-8 py-6 gap-4"
@@ -113,7 +161,8 @@ const ManageLectures = () => {
 
         {showAddStudent && (
           <div className="mt-4 mb-8 p-6 bg-purple-50 rounded-xl shadow-lg">
-            <AddStudent id={id} />
+            {/* Pass the handler as a prop to AddStudent */}
+            <AddStudent id={id} onStudentAdded={handleStudentAdded} />
           </div>
         )}
 

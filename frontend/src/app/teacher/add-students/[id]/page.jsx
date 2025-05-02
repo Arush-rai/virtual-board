@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 
 const ISSERVER = typeof window === 'undefined';
 
-const AddStudent = ({ id }) => {
+const AddStudent = ({ id, onStudentAdded }) => {
   const [emails, setEmails] = useState(['']);
 
   const handleEmailChange = (index, value) => {
@@ -30,10 +30,10 @@ const AddStudent = ({ id }) => {
         // Send all emails at once
         const validEmails = emails.filter(email => email.trim() !== '');
         if (validEmails.length === 0) {
-          toast.error('Please enter at least one email.');
+          toast.error('Please enter a email.');
           return;
         }
-        const payload = { studentEmails: validEmails, classId: id };
+        const payload = { studentEmail: validEmails[0], classId: id };
         await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/classroom/addstudents`, payload, {
           headers: {
             'x-auth-token': localStorage.getItem('teacher'),
@@ -42,6 +42,7 @@ const AddStudent = ({ id }) => {
 
         toast.success('Students added successfully');
         setEmails(['']);
+        onStudentAdded(); // Call the parent function to refresh the list
       } catch (error) {
         toast.error('Failed to add students');
       }
@@ -94,13 +95,13 @@ const AddStudent = ({ id }) => {
               </div>
             </div>
           ))}
-          <button
+          {/* <button
             type="button"
             onClick={addEmailField}
             className="w-full py-2 px-4 rounded-lg bg-gradient-to-r from-purple-200 to-pink-200 text-purple-700 font-semibold shadow hover:from-pink-200 hover:to-purple-200 transition-colors mb-2"
           >
             + Add Another Email
-          </button>
+          </button> */}
           <button
             type="submit"
             className="w-full py-3 px-4 mt-2 inline-flex justify-center items-center gap-x-2 text-lg font-bold rounded-xl border border-transparent bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow-lg hover:from-pink-500 hover:to-purple-500 transition-colors"

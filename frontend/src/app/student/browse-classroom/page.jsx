@@ -3,15 +3,24 @@ import Link from 'next/link';
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 
+const ISSERVER = typeof window === 'undefined';
+
 const BrowseClassroom = () => {
   const [classrooms, setClassrooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const token =  !ISSERVER ? localStorage.getItem('student') : null;
+
   useEffect(() => {
     setLoading(true);
-    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/classroom/getall`)
+    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/classroom/getbystudent`, {
+      headers: {
+        'x-auth-token': token,
+      }
+    })
       .then(res => {
+        console.log(res.data);
         setClassrooms(res.data);
         setLoading(false);
       })

@@ -91,4 +91,32 @@ router.get('/getbyteacher', verifyToken, async (req, res) => {
     }
 });
 
+// Get classrooms for a student
+router.get('/getbystudent', verifyToken, async (req, res) => {
+    try {
+        // Find classrooms where the student's _id is in the students array
+        const classrooms = await Model.find({ students: req.user._id });
+
+        res.status(200).json(classrooms);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: 'Failed to fetch classrooms.' });
+    }
+});
+
+// Get classroom details by ID (with students populated)
+router.get('/getbyid/:id', verifyToken, async (req, res) => {
+    try {
+        // Populate the 'students' field to get student details
+        const classroom = await Model.findById(req.params.id).populate('students');
+        if (!classroom) {
+            return res.status(404).json({ error: 'Classroom not found.' });
+        }
+        res.status(200).json(classroom);
+    } catch (err) {
+        console.log(err);
+        res.status(500).json({ error: 'Failed to fetch classroom.' });
+    }
+});
+
 module.exports = router;
