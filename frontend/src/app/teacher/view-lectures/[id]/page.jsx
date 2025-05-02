@@ -24,37 +24,91 @@ const ViewLectures = () => {
   };
 
   const handleMaterialUpload = async (e) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+    const file = e.target.files[0];
+    if (!file) return;
+
     const formData = new FormData();
-    for (let file of files) {
-      formData.append('material', file);
-    }
+    formData.append('material', file);
+
     try {
-      await axios.post(
-        `${process.env.NEXT_PUBLIC_API_URL}/recordings/upload-material/${id}`,
+      const token = localStorage.getItem('teacher');
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL}/lectures/material/${id}`,
         formData,
         {
           headers: {
             'Content-Type': 'multipart/form-data',
+            'x-auth-token': token
           },
         }
       );
+      console.log(response.data);
+
+      // Update materials state with the new URL
+      setMaterials(prev => [...prev, response.data.materialUrl]);
+
+      // Clear the file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+
       alert('Material uploaded successfully!');
-      fetchMaterials();
     } catch (err) {
-      alert('Failed to upload material');
+      console.error('Upload error:', err);
+      alert('Failed to upload material: ' + (err.response?.data?.error || err.message));
+    }
+  };
+
+  const handleDeleteMaterial = async (materialUrl, index) => {
+    if (!window.confirm('Are you sure you want to delete this material?')) return;
+
+    try {
+      const token = localStorage.getItem('teacher');
+      await axios.delete(
+        `${process.env.NEXT_PUBLIC_API_URL}/lectures/material/${id}/${index}`,
+        {
+          headers: {
+            'x-auth-token': token
+          }
+        }
+      );
+
+      // Update the materials state
+      setMaterials(prev => prev.filter((_, idx) => idx !== index));
+      alert('Material deleted successfully!');
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Failed to delete material');
     }
   };
 
   const fetchMaterials = () => {
     axios.get(`${process.env.NEXT_PUBLIC_API_URL}/lectures/getbyid/${id}`)
       .then(res => {
+        console.log(res.data);
+        
         if (res.data && Array.isArray(res.data.material)) {
           setMaterials(res.data.material);
         }
       })
       .catch(() => setMaterials([]));
+  };
+
+  const getFileType = (url) => {
+    const extension = url.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'gif', 'svg', 'webp'].includes(extension)) {
+      return 'image';
+    } else if (['mp4', 'webm', 'ogg'].includes(extension)) {
+      return 'video';
+    } else if (['pdf'].includes(extension)) {
+      return 'pdf';
+    } else if (['doc', 'docx'].includes(extension)) {
+      return 'document';
+    } else if (['ppt', 'pptx'].includes(extension)) {
+      return 'presentation';
+    } else {
+      return 'other';
+    }
   };
 
   useEffect(() => {
@@ -90,7 +144,6 @@ const ViewLectures = () => {
           <label className="font-bold text-lg text-purple-700 mb-2">Upload Lecture Material (PDF or any file):</label>
           <input
             type="file"
-            multiple
             ref={fileInputRef}
             className="mb-2 border border-purple-300 rounded px-3 py-2 bg-white shadow focus:outline-none focus:ring-2 focus:ring-purple-400"
             onChange={handleMaterialUpload}
@@ -102,32 +155,101 @@ const ViewLectures = () => {
         {/* View Uploaded Materials */}
         {materials.length > 0 && (
           <div className="mb-10 bg-gradient-to-r from-pink-50 to-purple-50 rounded-xl p-6 shadow">
-            <h3 className="text-xl font-bold text-purple-700 mb-3">Lecture Materials</h3>
-            <ul className="list-disc list-inside space-y-2">
-              {materials.map((file, idx) => (
-                <li key={idx}>
-                  {file.endsWith('.pdf') ? (
-                    <a
-                      href={file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-pink-600 font-semibold underline hover:text-purple-700 transition"
-                    >
-                      📄 View PDF: {file.split('/').pop()}
-                    </a>
-                  ) : (
-                    <a
-                      href={file}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-blue-600 font-semibold underline hover:text-purple-700 transition"
-                    >
-                      ⬇️ Download File: {file.split('/').pop()}
-                    </a>
-                  )}
-                </li>
-              ))}
-            </ul>
+            <h3 className="text-xl font-bold text-purple-700 mb-6">Lecture Materials</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {materials.map((file, idx) => {
+                const fileType = getFileType(file);
+                const fileName = file.split('/').pop();
+
+                return (
+                  <div key={idx} className="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow p-4 border border-purple-100 flex flex-col">
+
+                    {/* Preview based on file type */}
+                    <div className="h-40 flex items-center justify-center mb-3 bg-gray-50 rounded overflow-hidden">
+                      {fileType === 'image' && (
+                        <img src={file} alt={fileName} className="max-h-full max-w-full object-contain" />
+                      )}
+
+                      {fileType === 'video' && (
+                        <video controls className="max-h-full max-w-full">
+                          <source src={file} type={`video/${file.split('.').pop().toLowerCase()}`} />
+                          Your browser does not support the video tag.
+                        </video>
+                      )}
+
+                      {fileType === 'pdf' && (
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-red-500 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M7 11.5V14H3v-2.5H7zM7 7v2.5H3V7H7zm0-4.5V5H3V2.5H7zm11 0V5h-7V2.5h7zm0 4.5V10h-7V7h7zm0 4.5V14h-7v-2.5h7zM21 2.5V5h-2.5V2.5H21zm0 4.5V10h-2.5V7H21zm0 4.5V14h-2.5v-2.5H21zm0 4.5V19h-2.5v-3H21zM7 19v-3h11v3H7z" />
+                          </svg>
+                          <span className="text-sm text-gray-500">PDF Document</span>
+                        </div>
+                      )}
+
+                      {fileType === 'document' && (
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-blue-500 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
+                          </svg>
+                          <span className="text-sm text-gray-500">Document</span>
+                        </div>
+                      )}
+
+                      {fileType === 'presentation' && (
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-orange-500 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19 16V3H5v13H2l10 9 10-9h-3zm-7 2v-4h2v4h3l-4 4-4-4h3z" />
+                          </svg>
+                          <span className="text-sm text-gray-500">Presentation</span>
+                        </div>
+                      )}
+
+                      {fileType === 'other' && (
+                        <div className="text-center">
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-20 w-20 text-gray-400 mx-auto" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6zM6 20V4h7v5h5v11H6z" />
+                          </svg>
+                          <span className="text-sm text-gray-500">File</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* File information */}
+                    <div className="mt-auto">
+                      {file}
+                      <a
+                        href={file}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-purple-600 font-semibold hover:text-purple-800 transition text-sm block truncate mb-2"
+                        title={fileName}
+                      >
+                        {fileName}
+                      </a>
+
+                      <div className="flex justify-between items-center">
+                        <a
+                          href={file}
+                          download
+                          className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 transition"
+                        >
+                          Download
+                        </a>
+                        <button
+                          onClick={() => handleDeleteMaterial(file, idx)}
+                          className="text-red-500 hover:text-red-700"
+                          title="Delete material"
+                        >
+                          <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         )}
 
@@ -175,7 +297,7 @@ const ViewLectures = () => {
                 </div>
               )}
               {/* Webcam Recording */}
-             
+
               {/* Delete Button */}
               <button
                 className="mt-2 bg-gradient-to-r from-pink-500 to-purple-500 text-white px-4 py-2 rounded-lg font-bold shadow hover:from-purple-500 hover:to-pink-500 transition-colors"
