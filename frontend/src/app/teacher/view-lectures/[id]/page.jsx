@@ -16,7 +16,11 @@ const ViewLectures = () => {
   const handleDeleteRecording = async (recordingId) => {
     if (!window.confirm('Are you sure you want to delete this recording?')) return;
     try {
-      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/recordings/delete/${recordingId}`);
+      await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/recordings/delete/${recordingId}`, {
+        headers: {
+          'x-auth-token': localStorage.getItem('teacher')
+        }
+      });
       setRecordings(prev => prev.filter(r => r._id !== recordingId));
     } catch (err) {
       alert('Failed to delete recording');
