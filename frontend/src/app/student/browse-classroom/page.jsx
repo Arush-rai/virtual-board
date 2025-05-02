@@ -54,9 +54,12 @@ const BrowseClassroom = () => {
                   </span>
                 </div>
                 <h2 className="text-2xl font-bold text-purple-700 mb-2">{classroom.name}</h2>
-                <p className="text-gray-600 mb-4">{classroom.description || 'No description provided.'}</p>
+
                 <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-400">ID: {classroom.id}</span>
+                  <span className="text-sm text-gray-500">
+                    Created by: {classroom.teacher?.name || classroom.teacherName || 'Unknown'}
+                  </span>
+                  <span className="text-sm text-gray-400"> {classroom.id}</span>
                   <Link
                     href={`/student/view-classroom/${classroom._id}`}
                     className="bg-gradient-to-r from-purple-400 to-pink-400 text-white px-4 py-2 rounded-lg font-semibold shadow hover:from-pink-400 hover:to-purple-400 transition-colors"

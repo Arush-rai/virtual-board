@@ -31,12 +31,12 @@ const ManageLectures = () => {
             'x-auth-token': token
           }
         })
-          .then((result) => {
+          .then(() => {
             toast.success('Lecture created Successfully');
             setShowForm(false);
             lectureForm.resetForm();
             fetchLectures();
-          }).catch((err) => {
+          }).catch(() => {
             toast.error('Something went wrong');
           });
       }
@@ -49,8 +49,6 @@ const ManageLectures = () => {
         const response = await axios.get(`http://localhost:5000/lectures/getbyclassroom/${id}`, {
           headers: { "x-auth-token": token }
         });
-        console.log(response.data);
-
         setLectures(response.data);
       } catch (error) {
         toast.error("Failed to fetch lectures");
@@ -60,16 +58,17 @@ const ManageLectures = () => {
 
   useEffect(() => {
     fetchLectures();
+    // eslint-disable-next-line
   }, [id]);
 
-  const deletelectures = async (id) => {
+  const deletelectures = async (lectureId) => {
     if (!ISSERVER) {
       try {
-        await axios.delete(`http://localhost:5000/lectures/delete/${id}`, {
+        await axios.delete(`http://localhost:5000/lectures/delete/${lectureId}`, {
           headers: { "x-auth-token": token }
         });
 
-        setLectures(prev => prev.filter((lecture) => lecture._id !== id));
+        setLectures(prev => prev.filter((lecture) => lecture._id !== lectureId));
         toast.success("Lecture deleted successfully");
       } catch (error) {
         toast.error("Failed to delete lecture");
@@ -78,16 +77,38 @@ const ManageLectures = () => {
   }
 
   return (
-    <>
-      <div className="max-w-5xl mx-auto p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-bold">Manage Lectures</h1>
-          <button
-            className="bg-purple-500 text-white px-4 py-2 rounded-full font-semibold shadow hover:bg-purple-600 transition-colors"
-            onClick={() => setShowAddStudent(!showAddStudent)}
-          >
-            {showAddStudent ? 'Close Add Student' : 'Add Student'}
-          </button>
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 py-10 px-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Header Box for Lectures and Action Buttons */}
+        <div
+          className="flex flex-col sm:flex-row items-center justify-between mb-10 rounded-2xl shadow-lg border border-purple-200 px-8 py-6 gap-4"
+          style={{
+            background: "linear-gradient(90deg, #ede9fe 0%, #fce7f3 100%)",
+            backdropFilter: "blur(2px)"
+          }}
+        >
+          <div className="flex items-center gap-3">
+            <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-4xl font-extrabold shadow-lg">
+              📚
+            </span>
+            <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500 drop-shadow-lg">
+              Lectures
+            </h1>
+          </div>
+          <div className="flex gap-4 mt-4 sm:mt-0">
+            <button
+              className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-xl font-semibold shadow hover:from-pink-500 hover:to-purple-500 transition-colors"
+              onClick={() => setShowAddStudent(!showAddStudent)}
+            >
+              {showAddStudent ? 'Close Add Student' : 'Add Student'}
+            </button>
+            <button
+              className="bg-gradient-to-r from-green-500 to-blue-500 text-white px-6 py-2 rounded-xl font-semibold shadow hover:from-blue-500 hover:to-green-500 transition-colors"
+              onClick={() => setShowForm(!showForm)}
+            >
+              {showForm ? 'Close Form' : 'Add Lecture'}
+            </button>
+          </div>
         </div>
 
         {showAddStudent && (
@@ -99,9 +120,9 @@ const ManageLectures = () => {
         {showForm && (
           <form
             onSubmit={lectureForm.handleSubmit}
-            className="flex flex-col space-y-4 p-4 border rounded-lg shadow-md bg-white mb-6"
+            className="flex flex-col space-y-4 p-6 border rounded-2xl shadow-lg bg-white mb-8"
           >
-            <label>Lecture Number</label>
+            <label className="font-semibold text-purple-700">Lecture Number</label>
             <input
               id='lecture_Number'
               name='lecture_Number'
@@ -109,62 +130,70 @@ const ManageLectures = () => {
               value={lectureForm.values.lecture_Number}
               onChange={lectureForm.handleChange}
               required
-              className="border rounded px-3 py-2"
+              className="border-2 border-purple-200 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow"
             />
 
-            <label>Topic</label>
+            <label className="font-semibold text-purple-700">Topic</label>
             <input
               name="topic"
               placeholder="Topic"
               value={lectureForm.values.topic}
               onChange={lectureForm.handleChange}
               required
-              className="border rounded px-3 py-2"
+              className="border-2 border-purple-200 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow"
             />
 
-            <label>Time</label>
+            <label className="font-semibold text-purple-700">Time</label>
             <input
               name="timeslot"
               placeholder="Schedule (e.g., Mon 10AM)"
               value={lectureForm.values.timeslot}
               onChange={lectureForm.handleChange}
               required
-              className="border rounded px-3 py-2"
+              className="border-2 border-purple-200 rounded-lg px-3 py-2 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white shadow"
             />
 
-            <button className='bg-blue-600 text-white px-4 py-2 rounded' type="submit">
+            <button className='bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-xl font-bold shadow hover:from-purple-500 hover:to-blue-500 transition-colors mt-2' type="submit">
               Create Lecture
             </button>
           </form>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {lectures.map((lecture) => (
-            <div key={lecture._id} className="p-4 border rounded-lg shadow-md bg-white">
-              <h2 className="text-xl font-semibold">{lecture.lecture_Number}</h2>
-              <p className="text-gray-600">Subject: {lecture.topic}</p>
-              <p className="text-gray-500">Time: {lecture.timeslot}</p>
-
-              <button
-                onClick={() => deletelectures(lecture._id)}
-                className="bg-red-500 text-white px-4 py-2 mt-2 rounded"
-              >
-                Delete
-              </button>
-              <Link className='bg-blue-500 text-white px-4 py-2 ml-4 rounded' href={`/teacher/view-lectures/${lecture._id}`}>View lecture </Link>
+            <div key={lecture._id} className="p-6 border-2 border-purple-200 rounded-2xl shadow-xl bg-gradient-to-br from-purple-50 to-pink-50 flex flex-col relative hover:scale-105 transition-transform duration-200">
+              <div className="absolute -top-6 left-1/2 -translate-x-1/2">
+                <span className="inline-block bg-gradient-to-r from-purple-400 to-pink-400 text-white text-2xl rounded-full p-3 shadow-lg">
+                  🎥
+                </span>
+              </div>
+              <h2 className="text-xl font-bold text-purple-700 mb-2 mt-6 text-center">Lecture {lecture.lecture_Number}</h2>
+              <p className="text-gray-600 text-center mb-1">Topic: <span className="font-semibold">{lecture.topic}</span></p>
+              <p className="text-gray-500 text-center mb-4">Time: {lecture.timeslot}</p>
+              <div className="flex flex-col gap-2 mt-auto">
+                <Link
+                  className='bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-lg font-semibold shadow hover:from-purple-500 hover:to-blue-500 transition-colors text-center'
+                  href={`/teacher/view-lectures/${lecture._id}`}
+                >
+                  View Lecture
+                </Link>
+                <button
+                  onClick={() => deletelectures(lecture._id)}
+                  className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-4 py-2 rounded-lg font-semibold shadow hover:from-pink-500 hover:to-red-500 transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
-          <div className="justify-items-center mb-6 flex flex-col items-center">
-            <button
-              className="bg-green-500 text-white text-2xl px-3 py-1 rounded-full hover:bg-green-600 mb-4"
-              onClick={() => setShowForm(!showForm)}
-            >
-              {showForm ? '-' : '+'}
-            </button>
-          </div>
         </div>
+        {lectures.length === 0 && (
+          <div className="text-center text-lg text-gray-500 mt-10">
+            No lectures found. 🚫
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 
