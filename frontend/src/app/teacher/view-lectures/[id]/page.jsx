@@ -240,7 +240,6 @@ const ViewLectures = () => {
 
                     {/* File information */}
                     <div className="mt-auto">
-                      {file}
                       <a
                         href={file}
                         target="_blank"

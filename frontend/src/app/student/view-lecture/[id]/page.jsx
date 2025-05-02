@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
 import axios from 'axios';
+import Link from 'next/link';
 
 const ViewLecture = () => {
   const { id } = useParams(); // lecture id
@@ -9,6 +10,31 @@ const ViewLecture = () => {
   const [lecture, setLecture] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Helper function to organize materials by type
+  const categorizeMaterials = (materials = []) => {
+    if (!Array.isArray(materials)) return { images: [], documents: [], videos: [] };
+    
+    return materials.reduce((acc, url) => {
+      const extension = url.split('.').pop().toLowerCase();
+      
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(extension)) {
+        // Check if it's likely a whiteboard image
+        if (url.includes('whiteboard') || url.includes('lecture_')) {
+          acc.whiteboards.push(url);
+        } else {
+          acc.images.push(url);
+        }
+      } else if (['pdf', 'doc', 'docx', 'ppt', 'pptx', 'txt'].includes(extension)) {
+        acc.documents.push(url);
+      } else if (['mp4', 'webm', 'mov', 'avi'].includes(extension)) {
+        acc.videos.push(url);
+      } else {
+        acc.other.push(url);
+      }
+      return acc;
+    }, { whiteboards: [], images: [], documents: [], videos: [], other: [] });
+  };
 
   useEffect(() => {
     if (!id) return;
@@ -31,12 +57,15 @@ const ViewLecture = () => {
       });
   }, [id]);
 
+  // Organize materials by type
+  const materials = lecture?.material ? categorizeMaterials(lecture.material) : null;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 p-8">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 p-4 md:p-8">
+      <div className="max-w-5xl mx-auto">
         {/* Lecture Details Box */}
         {lecture && (
-          <div className="mb-10 bg-white/90 shadow-2xl rounded-3xl p-8 border border-purple-200">
+          <div className="mb-10 bg-white/90 shadow-2xl rounded-3xl p-6 md:p-8 border border-purple-200">
             <div className="flex items-center gap-4 mb-2">
               <span className="inline-block bg-gradient-to-r from-purple-400 to-pink-400 text-white text-3xl rounded-full p-3 shadow-lg">
                 🎥
@@ -49,26 +78,144 @@ const ViewLecture = () => {
               <p className="text-gray-700 mb-1 text-lg">
                 <span className="font-semibold text-purple-700">Topic:</span> {lecture.topic}
               </p>
-              <p className="text-gray-500 mb-2">
+              <p className="text-gray-500 mb-4">
                 <span className="font-semibold text-purple-700">Time:</span> {lecture.timeslot}
               </p>
-              {lecture.material && lecture.material.length > 0 && (
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-purple-700 mb-2">Lecture Materials</h3>
-                  <ul className="list-disc list-inside space-y-1">
-                    {lecture.material.map((file, idx) => (
-                      <li key={idx}>
-                        <a
-                          href={file}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 underline hover:text-blue-800"
-                        >
-                          {file.split('/').pop()}
-                        </a>
-                      </li>
+              
+              {/* Whiteboards Section */}
+              {materials && materials.whiteboards.length > 0 && (
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clipRule="evenodd" />
+                    </svg>
+                    Whiteboard Captures
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {materials.whiteboards.map((url, idx) => (
+                      <div key={idx} className="border border-purple-200 rounded-lg overflow-hidden bg-white shadow-md hover:shadow-lg transition-shadow">
+                        <div className="relative pb-[56.25%]">
+                          <img 
+                            src={url} 
+                            alt={`Whiteboard ${idx + 1}`} 
+                            className="absolute top-0 left-0 w-full h-full object-contain"
+                          />
+                        </div>
+                        <div className="p-3 flex justify-between items-center bg-gradient-to-r from-purple-50 to-pink-50">
+                          <span className="text-sm font-medium text-purple-700">Whiteboard {idx + 1}</span>
+                          <a 
+                            href={url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-xs bg-purple-100 text-purple-700 px-3 py-1 rounded-full hover:bg-purple-200 transition"
+                          >
+                            View Full Size
+                          </a>
+                        </div>
+                      </div>
                     ))}
-                  </ul>
+                  </div>
+                </div>
+              )}
+              
+              {/* Other Lecture Materials */}
+              {materials && (materials.documents.length > 0 || materials.images.length > 0 || materials.videos.length > 0 || materials.other.length > 0) && (
+                <div>
+                  <h3 className="text-lg font-semibold text-purple-700 mb-3 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                    </svg>
+                    Lecture Materials
+                  </h3>
+                  
+                  {materials.documents.length > 0 && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Documents</h4>
+                      <ul className="space-y-2">
+                        {materials.documents.map((url, idx) => {
+                          const fileName = url.split('/').pop();
+                          const isPdf = url.toLowerCase().endsWith('.pdf');
+                          
+                          return (
+                            <li key={idx} className="flex items-center">
+                              {isPdf ? (
+                                <svg className="w-5 h-5 text-red-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path d="M9 2a2 2 0 00-2 2v8a2 2 0 002 2h6a2 2 0 002-2V6.414A2 2 0 0016.414 5L14 2.586A2 2 0 0012.586 2H9z" />
+                                  <path d="M3 8a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
+                                </svg>
+                              ) : (
+                                <svg className="w-5 h-5 text-blue-500 mr-2" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                              <a
+                                href={url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-600 hover:text-blue-800 hover:underline"
+                              >
+                                {fileName}
+                              </a>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    </div>
+                  )}
+                  
+                  {materials.images.length > 0 && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Images</h4>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        {materials.images.map((url, idx) => (
+                          <a 
+                            key={idx} 
+                            href={url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow"
+                          >
+                            <img src={url} alt={`Image ${idx + 1}`} className="w-full h-32 object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  
+                  {materials.videos.length > 0 && (
+                    <div className="mb-3">
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Videos</h4>
+                      {materials.videos.map((url, idx) => (
+                        <div key={idx} className="mb-3">
+                          <video controls className="w-full rounded-lg shadow-md">
+                            <source src={url} type={`video/${url.split('.').pop().toLowerCase()}`} />
+                            Your browser does not support the video tag.
+                          </video>
+                          <div className="mt-1 text-center text-sm text-gray-500">Video {idx + 1}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  
+                  {materials.other.length > 0 && (
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-700 mb-2">Other Files</h4>
+                      <ul className="list-disc list-inside space-y-1">
+                        {materials.other.map((url, idx) => (
+                          <li key={idx}>
+                            <a
+                              href={url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:text-blue-800 hover:underline"
+                            >
+                              {url.split('/').pop()}
+                            </a>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -76,7 +223,7 @@ const ViewLecture = () => {
         )}
 
         {/* Recordings Section */}
-        <div className="bg-white/90 shadow-2xl rounded-3xl p-8 border border-purple-200">
+        <div className="bg-white/90 shadow-2xl rounded-3xl p-6 md:p-8 border border-purple-200">
           <h2 className="text-2xl font-bold text-gray-800 mb-6 border-b-2 border-purple-100 pb-2">Recordings</h2>
 
           {loading && (
@@ -113,8 +260,6 @@ const ViewLecture = () => {
                     </video>
                   </div>
                 )}
-
-              
               </div>
             ))}
           </div>
