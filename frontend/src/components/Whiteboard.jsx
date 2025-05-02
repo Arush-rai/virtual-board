@@ -1,10 +1,12 @@
 'use client';
 import { TbRectangle } from "react-icons/tb";
-import { IoMdDownload } from "react-icons/io";
+import { IoMdDownload, IoMdSave } from "react-icons/io";
 import { FaLongArrowAltRight, FaStar } from "react-icons/fa";
 import { LuPencil } from "react-icons/lu";
 import { GiArrowCursor, GiTriangleTarget } from "react-icons/gi";
 import { FaRegCircle } from "react-icons/fa6";
+import { BiEraser } from "react-icons/bi";
+import { MdUndo, MdRedo, MdClear } from "react-icons/md";
 import {
   Arrow,
   Circle,
@@ -18,11 +20,13 @@ import {
 import { useRef, useState } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { ACTIONS } from "./constants";
+import axios from "axios";
+import toast from "react-hot-toast";
 
-const Whiteboard = () => {
+const Whiteboard = ({ lectureId }) => {
   const stageRef = useRef();
   const [action, setAction] = useState(ACTIONS.SELECT);
-  const [fillColor, setFillColor] = useState("#ff0000");
+  const [fillColor, setFillColor] = useState("#5b21b6");
   const [rectangles, setRectangles] = useState([]);
   const [circles, setCircles] = useState([]);
   const [arrows, setArrows] = useState([]);
@@ -33,6 +37,7 @@ const Whiteboard = () => {
   const [brushSize, setBrushSize] = useState(5);
   const [history, setHistory] = useState([]);
   const [redoStack, setRedoStack] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
 
   const strokeColor = "#000";
   const isPaining = useRef();
@@ -297,11 +302,52 @@ const Whiteboard = () => {
   function handleExport() {
     const uri = stageRef.current.toDataURL();
     var link = document.createElement("a");
-    link.download = "image.png";
+    link.download = "whiteboard.png";
     link.href = uri;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  }
+
+  async function handleSaveToLecture() {
+    if (!lectureId) {
+      toast.error("Lecture ID is missing");
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      const uri = stageRef.current.toDataURL();
+      
+      // Convert base64 to blob
+      const res = await fetch(uri);
+      const blob = await res.blob();
+      
+      // Create FormData
+      const formData = new FormData();
+      formData.append('material', blob, 'whiteboard.png');
+      
+      const token = localStorage.getItem('teacher');
+      
+      // Upload to lecture materials
+      const response = await axios.post(
+        `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/lectures/material/${lectureId}`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            'x-auth-token': token
+          },
+        }
+      );
+      
+      toast.success('Whiteboard saved to lecture materials!');
+    } catch (err) {
+      console.error('Save error:', err);
+      toast.error('Failed to save whiteboard');
+    } finally {
+      setIsSaving(false);
+    }
   }
 
   function onClick(e) {
@@ -312,230 +358,280 @@ const Whiteboard = () => {
 
   return (
     <>
-      <div className="relative w-full h-screen overflow-hidden">
+      <div className="relative w-full h-screen overflow-hidden bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50">
+        {/* Header */}
+        <div className="absolute top-0 z-10 w-full py-3 bg-white shadow-md">
+          <h1 className="text-3xl font-bold text-center text-transparent bg-clip-text bg-gradient-to-r from-purple-600 via-pink-500 to-blue-500">
+            Interactive Whiteboard
+          </h1>
+        </div>
+        
         {/* Controls */}
-        <div className="absolute top-0 z-10 w-full py-2 ">
-          <div className="flex justify-center items-center gap-3 py-2 px-3 w-fit mx-auto border shadow-lg rounded-lg">
+        <div className="absolute top-16 z-10 w-full py-2">
+          <div className="flex flex-wrap justify-center items-center gap-3 py-3 px-4 w-fit mx-auto bg-white border border-purple-200 shadow-lg rounded-xl">
             <button
-              className={
+              className={`transition-all p-2 rounded-lg flex items-center gap-1 ${
                 isErasing
-                  ? "bg-red-300 p-1 rounded"
-                  : "p-1 hover:bg-red-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-red-500 to-pink-500 text-white shadow"
+                  : "hover:bg-red-100 text-red-600"
+              }`}
               onClick={() => setIsErasing(!isErasing)}
             >
-              Eraser
+              <BiEraser size={"1.3rem"} />
+              <span className="text-sm">Eraser</span>
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.SELECT
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.SELECT)}
             >
-              <GiArrowCursor size={"2rem"} />
+              <GiArrowCursor size={"1.3rem"} />
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.RECTANGLE
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.RECTANGLE)}
             >
-              <TbRectangle size={"2rem"} />
+              <TbRectangle size={"1.3rem"} />
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.CIRCLE
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.CIRCLE)}
             >
-              <FaRegCircle size={"1.5rem"} />
+              <FaRegCircle size={"1.2rem"} />
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.TRIANGLE
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.TRIANGLE)}
             >
-              <GiTriangleTarget size={"2rem"} />
+              <GiTriangleTarget size={"1.3rem"} />
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.STAR
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.STAR)}
             >
-              <FaStar size={"2rem"} />
+              <FaStar size={"1.3rem"} />
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.ARROW
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.ARROW)}
             >
-              <FaLongArrowAltRight size={"2rem"} />
+              <FaLongArrowAltRight size={"1.3rem"} />
             </button>
             <button
-              className={
+              className={`transition-all p-2 rounded-lg ${
                 action === ACTIONS.SCRIBBLE
-                  ? "bg-violet-300 p-1 rounded"
-                  : "p-1 hover:bg-violet-100 rounded"
-              }
+                  ? "bg-gradient-to-r from-purple-500 to-pink-500 text-white shadow"
+                  : "hover:bg-purple-100 text-purple-600"
+              }`}
               onClick={() => setAction(ACTIONS.SCRIBBLE)}
             >
-              <LuPencil size={"1.5rem"} />
+              <LuPencil size={"1.2rem"} />
             </button>
 
-            <button>
+            <div className="flex items-center ml-2">
               <input
-                className="w-6 h-6"
+                className="w-6 h-6 rounded-full border-2 border-purple-300 cursor-pointer"
                 type="color"
                 value={fillColor}
                 onChange={(e) => setFillColor(e.target.value)}
               />
+            </div>
+
+            <div className="h-8 w-0.5 bg-gray-200 mx-1"></div>
+
+            <button 
+              onClick={handleExport}
+              className="transition-all p-2 rounded-lg hover:bg-blue-100 text-blue-600 flex items-center gap-1"
+            >
+              <IoMdDownload size={"1.3rem"} />
+              <span className="text-sm">Download</span>
+            </button>
+            
+            <button 
+              onClick={handleSaveToLecture}
+              disabled={isSaving}
+              className="transition-all p-2 rounded-lg bg-gradient-to-r from-green-500 to-blue-500 hover:from-blue-500 hover:to-green-500 text-white shadow flex items-center gap-1"
+            >
+              <IoMdSave size={"1.3rem"} />
+              <span className="text-sm">{isSaving ? "Saving..." : "Save to Lecture"}</span>
             </button>
 
-            <button onClick={handleExport}>
-              <IoMdDownload size={"1.5rem"} />
-            </button>
+            <div className="h-8 w-0.5 bg-gray-200 mx-1"></div>
 
-            <button onClick={handleUndo} className="p-1 hover:bg-gray-100 rounded">Undo</button>
-            <button onClick={handleRedo} className="p-1 hover:bg-gray-100 rounded">Redo</button>
-            <button onClick={clearCanvas} className="p-1 hover:bg-gray-100 rounded">Clear</button>
-            <input
-              type="range"
-              min="1"
-              max="20"
-              value={brushSize}
-              onChange={(e) => setBrushSize(Number(e.target.value))}
-              className="w-20"
-            />
-            <span>Brush Size: {brushSize}</span>
+            <button 
+              onClick={handleUndo} 
+              className="transition-all p-2 rounded-lg hover:bg-purple-100 text-purple-600"
+              title="Undo"
+            >
+              <MdUndo size={"1.3rem"} />
+            </button>
+            <button 
+              onClick={handleRedo} 
+              className="transition-all p-2 rounded-lg hover:bg-purple-100 text-purple-600"
+              title="Redo"
+            >
+              <MdRedo size={"1.3rem"} />
+            </button>
+            <button 
+              onClick={clearCanvas} 
+              className="transition-all p-2 rounded-lg hover:bg-red-100 text-red-600"
+              title="Clear All"
+            >
+              <MdClear size={"1.3rem"} />
+            </button>
+            
+            <div className="flex items-center gap-2 ml-2">
+              <input
+                type="range"
+                min="1"
+                max="20"
+                value={brushSize}
+                onChange={(e) => setBrushSize(Number(e.target.value))}
+                className="w-24 accent-purple-600"
+              />
+              <span className="text-xs font-medium text-gray-600">Size: {brushSize}</span>
+            </div>
           </div>
         </div>
+        
         {/* Canvas */}
-        <Stage
-          ref={stageRef}
-          width={window.innerWidth}
-          height={window.innerHeight}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-        >
-          <Layer>
-            <Rect
-              x={0}
-              y={0}
-              height={window.innerHeight}
-              width={window.innerWidth}
-              fill="#ffffff"
-              id="bg"
-              onClick={() => {
-                transformerRef.current.nodes([]);
-              }}
-            />
-
-            {rectangles.map((rectangle) => (
+        <div className="pt-28">
+          <Stage
+            ref={stageRef}
+            width={window.innerWidth}
+            height={window.innerHeight - 112}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            className="bg-white shadow-lg rounded-lg"
+          >
+            <Layer>
               <Rect
-                key={rectangle.id}
-                x={rectangle.x}
-                y={rectangle.y}
-                stroke={strokeColor}
-                strokeWidth={2}
-                fill={rectangle.fillColor}
-                height={rectangle.height}
-                width={rectangle.width}
-                draggable={isDraggable}
-                onClick={onClick}
+                x={0}
+                y={0}
+                height={window.innerHeight}
+                width={window.innerWidth}
+                fill="#ffffff"
+                id="bg"
+                onClick={() => {
+                  transformerRef.current.nodes([]);
+                }}
               />
-            ))}
 
-            {circles.map((circle) => (
-              <Circle
-                key={circle.id}
-                radius={circle.radius}
-                x={circle.x}
-                y={circle.y}
-                stroke={strokeColor}
-                strokeWidth={2}
-                fill={circle.fillColor}
-                draggable={isDraggable}
-                onClick={onClick}
-              />
-            ))}
-            {triangles.map((triangle) => (
-              <Line
-                key={triangle.id}
-                points={[
-                  triangle.x,
-                  triangle.y,
-                  triangle.x + triangle.size,
-                  triangle.y,
-                  triangle.x + triangle.size / 2,
-                  triangle.y - triangle.size,
-                ]}
-                closed
-                fill={triangle.fillColor}
-                stroke={strokeColor}
-                strokeWidth={2}
-                draggable={isDraggable}
-                onClick={onClick}
-              />
-            ))}
-            {stars.map((star) => (
-              <Star
-                key={star.id}
-                x={star.x}
-                y={star.y}
-                numPoints={star.points}
-                innerRadius={star.innerRadius}
-                outerRadius={star.outerRadius}
-                fill={star.fillColor}
-                stroke={strokeColor}
-                strokeWidth={2}
-                draggable={isDraggable}
-                onClick={onClick}
-              />
-            ))}
-            {arrows.map((arrow) => (
-              <Arrow
-                key={arrow.id}
-                points={arrow.points}
-                stroke={strokeColor}
-                strokeWidth={2}
-                fill={arrow.fillColor}
-                draggable={isDraggable}
-                onClick={onClick}
-              />
-            ))}
+              {rectangles.map((rectangle) => (
+                <Rect
+                  key={rectangle.id}
+                  x={rectangle.x}
+                  y={rectangle.y}
+                  stroke={strokeColor}
+                  strokeWidth={2}
+                  fill={rectangle.fillColor}
+                  height={rectangle.height}
+                  width={rectangle.width}
+                  draggable={isDraggable}
+                  onClick={onClick}
+                />
+              ))}
 
-            {scribbles.map((scribble) => (
-              <Line
-                key={scribble.id}
-                lineCap="round"
-                lineJoin="round"
-                points={scribble.points}
-                stroke={scribble.fillColor}
-                strokeWidth={scribble.brushSize}
-                draggable={isDraggable}
-                onClick={onClick}
-              />
-            ))}
+              {circles.map((circle) => (
+                <Circle
+                  key={circle.id}
+                  radius={circle.radius}
+                  x={circle.x}
+                  y={circle.y}
+                  stroke={strokeColor}
+                  strokeWidth={2}
+                  fill={circle.fillColor}
+                  draggable={isDraggable}
+                  onClick={onClick}
+                />
+              ))}
+              {triangles.map((triangle) => (
+                <Line
+                  key={triangle.id}
+                  points={[
+                    triangle.x,
+                    triangle.y,
+                    triangle.x + triangle.size,
+                    triangle.y,
+                    triangle.x + triangle.size / 2,
+                    triangle.y - triangle.size,
+                  ]}
+                  closed
+                  fill={triangle.fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={2}
+                  draggable={isDraggable}
+                  onClick={onClick}
+                />
+              ))}
+              {stars.map((star) => (
+                <Star
+                  key={star.id}
+                  x={star.x}
+                  y={star.y}
+                  numPoints={star.points}
+                  innerRadius={star.innerRadius}
+                  outerRadius={star.outerRadius}
+                  fill={star.fillColor}
+                  stroke={strokeColor}
+                  strokeWidth={2}
+                  draggable={isDraggable}
+                  onClick={onClick}
+                />
+              ))}
+              {arrows.map((arrow) => (
+                <Arrow
+                  key={arrow.id}
+                  points={arrow.points}
+                  stroke={strokeColor}
+                  strokeWidth={2}
+                  fill={arrow.fillColor}
+                  draggable={isDraggable}
+                  onClick={onClick}
+                />
+              ))}
 
-            <Transformer ref={transformerRef} />
-          </Layer>
-        </Stage>
+              {scribbles.map((scribble) => (
+                <Line
+                  key={scribble.id}
+                  lineCap="round"
+                  lineJoin="round"
+                  points={scribble.points}
+                  stroke={scribble.fillColor}
+                  strokeWidth={scribble.brushSize}
+                  draggable={isDraggable}
+                  onClick={onClick}
+                />
+              ))}
+
+              <Transformer ref={transformerRef} />
+            </Layer>
+          </Stage>
+        </div>
       </div>
     </>
   );

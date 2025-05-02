@@ -3,6 +3,7 @@ import Recorder from '@/components/Recorder';
 import { useParams } from 'next/navigation';
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
+import Link from 'next/link';
 
 const ViewLectures = () => {
   const { id } = useParams();
@@ -154,6 +155,25 @@ const ViewLectures = () => {
             accept="*"
           />
           <p className="text-xs text-gray-500">Files will be uploaded to Cloudinary and attached to this lecture.</p>
+        </div>
+
+        {/* Interactive Whiteboard Section */}
+        <div className="mb-10 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl p-6 shadow">
+          <div className="flex flex-col md:flex-row items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-blue-700 mb-2">Interactive Whiteboard</h2>
+              <p className="text-gray-600 mb-4">Use the whiteboard to explain concepts and share your screen with students.</p>
+            </div>
+            <Link 
+              href={`/whiteboard/${id}`} 
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-xl font-bold shadow-md hover:from-purple-500 hover:to-blue-500 transition-all transform hover:scale-105 flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 5a2 2 0 012-2h10a2 2 0 012 2v8a2 2 0 01-2 2h-2.22l.123.489.804.804A1 1 0 0113 18H7a1 1 0 01-.707-1.707l.804-.804L7.22 15H5a2 2 0 01-2-2V5zm5.771 7H5V5h10v7H8.771z" clipRule="evenodd" />
+              </svg>
+              Open Whiteboard
+            </Link>
+          </div>
         </div>
 
         {/* View Uploaded Materials */}
