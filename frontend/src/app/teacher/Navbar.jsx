@@ -24,6 +24,18 @@ const TeacherNavbar = () => {
         </span>
         <div className="flex items-center gap-6">
           <Link
+            href="/"
+            className="bg-white text-purple-600 font-bold px-4 py-2 rounded-lg shadow hover:bg-purple-100 transition-colors"
+          >
+            Home
+          </Link>
+          <Link
+            href="/about"
+            className="bg-white text-purple-600 font-bold px-4 py-2 rounded-lg shadow hover:bg-purple-100 transition-colors"
+          >
+            About
+          </Link>
+          <Link
             href="/teacher/manage-classroom"
             className="bg-white text-purple-600 font-bold px-4 py-2 rounded-lg shadow hover:bg-purple-100 transition-colors"
           >

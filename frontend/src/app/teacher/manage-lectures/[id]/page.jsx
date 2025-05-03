@@ -173,25 +173,13 @@ const ManageLectures = () => {
       <div className="max-w-5xl mx-auto">
         {/* Classroom Details */}
         {classroom && (
-          <div className="mb-8 p-6 rounded-2xl shadow-lg border border-blue-200 bg-white/80">
+          <div
+            className="mb-8 p-6 rounded-2xl shadow-lg border border-blue-200"
+            style={{
+              background: "linear-gradient(90deg, #e0e7ff 0%, #f3e8ff 100%)", // Added a nice blue/purple gradient
+            }}
+          >
             <h2 className="text-2xl font-bold text-blue-700 mb-2">{classroom.name}</h2>
-            <p className="text-gray-700 mb-1"><span className="font-semibold">Subject:</span> {classroom.subject}</p>
-            <p className="text-gray-600"><span className="font-semibold">Schedule:</span> {classroom.timeslot}</p>
-            {/* Students List */}
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold text-purple-700 mb-2">Students in this classroom:</h3>
-              {classroom.students && classroom.students.length > 0 ? (
-                <ul className="list-disc list-inside space-y-1">
-                  {classroom.students.map((student) => (
-                    <li key={student._id} className="text-gray-800">
-                      {student.name} <span className="text-gray-500 text-sm">({student.email})</span>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <div className="text-gray-500">No students added yet.</div>
-              )}
-            </div>
           </div>
         )}
 
@@ -340,8 +328,33 @@ const ManageLectures = () => {
             >
               {showForm ? 'Close Form' : 'Add Lecture'}
             </button>
+            {/* Show Students Button moved here */}
+            <button
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-2 rounded-xl font-semibold shadow hover:from-purple-500 hover:to-blue-500 transition-colors"
+              onClick={() => setShowStudents((prev) => !prev)}
+            >
+              {showStudents ? 'Hide Students' : 'Show Students'}
+            </button>
           </div>
         </div>
+
+        {/* Students List Box moved below the header/action box */}
+        {showStudents && classroom && (
+          <div className="mb-8 p-6 rounded-2xl shadow-lg border border-blue-200 bg-white/80">
+            <h3 className="text-lg font-semibold text-purple-700 mb-2">Students in this classroom:</h3>
+            {classroom.students && classroom.students.length > 0 ? (
+              <ul className="list-disc list-inside space-y-1">
+                {classroom.students.map((student) => (
+                  <li key={student._id} className="text-gray-800">
+                    {student.name} <span className="text-gray-500 text-sm">({student.email})</span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="text-gray-500">No students added yet.</div>
+            )}
+          </div>
+        )}
 
         {showAddStudent && (
           <div className="mt-4 mb-8 p-6 bg-purple-50 rounded-xl shadow-lg">
