@@ -15,6 +15,7 @@ const ManageLectures = () => {
   const [showAnnouncementForm, setShowAnnouncementForm] = useState(false);
   const [announcements, setAnnouncements] = useState([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [showStudents, setShowStudents] = useState(false);
   const token = localStorage.getItem('teacher');
   const router = useRouter();
   const { id } = useParams();
