@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const studentRouter = require('./routers/studentRouter');
 const teacherRouter = require('./routers/teacherRouter');
 const classRouter = require('./routers/classRouter');
@@ -19,6 +20,9 @@ app.use('/teacher', teacherRouter);
 app.use('/classroom', classRouter);
 app.use('/lectures', lectureRouter);
 app.use('/recordings', recordingRouter);
+
+// Add this line to your server file to serve static files
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 app.get('/', (req, res) => {
     console.log('response from express');

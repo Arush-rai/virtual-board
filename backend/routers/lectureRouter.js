@@ -1,19 +1,55 @@
 const express = require('express');
-const cloudinary = require('cloudinary').v2;
 const multer = require('multer');
-const upload = multer({ storage: multer.memoryStorage() });
 const path = require('path');
+const fs = require('fs');
 
 const router = express.Router();
 const Model = require('../models/lectureModel');
 const verifyToken = require('../middlewares/verifyToken');
 require('dotenv').config();
 
-// Configure Cloudinary
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET,
+// Configure multer for local file storage
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    // Create directory for lecture materials if it doesn't exist
+    const uploadDir = path.join(__dirname, '../uploads/lecture-materials');
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    // Create a unique filename with original extension
+    const lectureId = req.params.lectureId || 'unknown';
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const originalExt = path.extname(file.originalname);
+    cb(null, `lecture_${lectureId}_${uniqueSuffix}${originalExt}`);
+  }
+});
+
+// File filter to restrict file types
+const fileFilter = (req, file, cb) => {
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'application/pdf',
+    'video/mp4', 'video/webm', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation'
+  ];
+  
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Invalid file type. Only images, documents, and videos are allowed.'), false);
+  }
+};
+
+const upload = multer({ 
+  storage: storage,
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024 // 50MB limit
+  }
 });
 
 router.post('/add', verifyToken, (req, res) => {
@@ -70,7 +106,7 @@ router.get('/getbyid/:id', (req, res) => {
         });
 });
 
-// Add material to lecture
+// Add material to lecture (local storage)
 router.post('/material/:lectureId', verifyToken, upload.single('material'), async (req, res) => {
   try {
     if (!req.file) {
@@ -78,36 +114,51 @@ router.post('/material/:lectureId', verifyToken, upload.single('material'), asyn
     }
 
     const lectureId = req.params.lectureId;
-    const fileBuffer = `data:${req.file.mimetype};base64,${req.file.buffer.toString('base64')}`;
-
-    // Upload to Cloudinary
-    const uploadResult = await cloudinary.uploader.upload(fileBuffer, {
-      resource_type: 'auto', // Automatically detect resource type (image, pdf, video etc)
-      folder: 'lecture-materials',
-      public_id: `lecture_${lectureId}_${Date.now()}`,
-      format: path.extname(req.file.originalname).substring(1) || 'auto'
-    });
+    
+    // Generate the URL for accessing the file
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const relativePath = `/uploads/lecture-materials/${req.file.filename}`;
+    const fileUrl = `${baseUrl}${relativePath}`;
+    
+    // Store metadata about the upload
+    const fileData = {
+      url: fileUrl,
+      filename: req.file.filename,
+      originalname: req.file.originalname,
+      mimetype: req.file.mimetype,
+      size: req.file.size,
+      path: req.file.path
+    };
 
     // Update the lecture with the new material URL
-    console.log(uploadResult.url);
-    
     const updatedLecture = await Model.findByIdAndUpdate(
       lectureId,
-      { $push: { material: uploadResult.url } },
+      { $push: { material: fileUrl } },
       { new: true }
     );
 
     if (!updatedLecture) {
+      // If lecture not found, delete the uploaded file to avoid orphaned files
+      fs.unlinkSync(req.file.path);
       return res.status(404).json({ error: 'Lecture not found' });
     }
 
     res.status(200).json({
       message: 'Material uploaded successfully',
-      materialUrl: uploadResult.url,
+      materialUrl: fileUrl,
+      fileData: fileData,
       lecture: updatedLecture
     });
   } catch (err) {
     console.log(err);
+    // Clean up the file if an error occurred
+    if (req.file && req.file.path) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (unlinkErr) {
+        console.error('Failed to delete file after error:', unlinkErr);
+      }
+    }
     res.status(500).json({ error: 'Failed to upload material', details: err.message });
   }
 });
@@ -127,7 +178,7 @@ router.get('/material/:lectureId', async (req, res) => {
   }
 });
 
-// Delete a material from lecture
+// Delete a material from lecture (updated for local files)
 router.delete('/material/:lectureId/:materialIndex', verifyToken, async (req, res) => {
   try {
     const lectureId = req.params.lectureId;
@@ -147,11 +198,14 @@ router.delete('/material/:lectureId/:materialIndex', verifyToken, async (req, re
     // Get the material URL
     const materialUrl = lecture.material[materialIndex];
     
-    // Extract public_id from the Cloudinary URL
-    const publicId = materialUrl.split('/').slice(-1)[0].split('.')[0];
+    // Extract the filename from the URL
+    const filename = materialUrl.split('/').pop();
+    const filePath = path.join(__dirname, '../uploads/lecture-materials', filename);
     
-    // Delete from Cloudinary
-    await cloudinary.uploader.destroy(`lecture-materials/${publicId}`);
+    // Delete the file if it exists
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
     
     // Remove material from lecture
     lecture.material.splice(materialIndex, 1);
