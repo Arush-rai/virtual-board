@@ -306,7 +306,7 @@ const ViewLectures = () => {
               <h2 className="text-xl font-bold text-purple-700 mb-2">Recording Details</h2>
               <div className="mb-3">
                 <p className="text-base text-gray-700">Title: <span className="font-semibold">{recording.title}</span></p>
-                <p className="text-base text-gray-700">Duration: <span className="font-semibold">{recording.duration}</span> minutes</p>
+               
                 <p className="text-base text-gray-700">Recording Date: <span className="font-semibold">{new Date(recording.date || recording.createdAt).toLocaleDateString()}</span></p>
               </div>
               {/* Screen Recording */}
