@@ -45,27 +45,37 @@ const ManageClassrooms = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-pink-100 p-8">
       <div className="max-w-5xl mx-auto">
         {/* Header Box with Teacher Initial */}
-        <div className="flex items-center gap-4 mb-10 rounded-2xl shadow-lg border border-purple-200 px-6 py-5"
+        <div
+          className="flex items-center gap-4 mb-10 rounded-2xl shadow-lg border border-purple-200 px-6 py-5"
           style={{
             background: "linear-gradient(90deg, #ede9fe 0%, #fce7f3 100%)",
-            backdropFilter: "blur(2px)"
+            backdropFilter: "blur(2px)",
           }}
         >
           {/* Teacher Initial Avatar */}
           <div className="flex-shrink-0">
             <span className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white text-3xl font-extrabold shadow-lg">
-              {typeof window !== 'undefined'
-                ? (localStorage.getItem('teacherName')?.charAt(0)?.toUpperCase() || 'T')
-                : 'T'}
+              {typeof window !== "undefined"
+                ? localStorage.getItem("teacherName")?.charAt(0)?.toUpperCase() || "T"
+                : "T"}
             </span>
           </div>
-          <div>
+          <div className="flex-1">
             <h1 className="text-4xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 drop-shadow-lg">
               Classrooms
             </h1>
             <p className="text-gray-600 text-lg font-medium mt-1">
               Manage your classrooms below
             </p>
+          </div>
+          {/* Add Classroom Button */}
+          <div className="ml-auto">
+            <Link
+              href="/teacher/add-classroom"
+              className="inline-block px-6 py-3 bg-gradient-to-r from-purple-500 to-pink-500 text-white font-bold rounded-xl shadow hover:from-pink-500 hover:to-purple-500 transition-colors"
+            >
+              + Add Classroom
+            </Link>
           </div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
