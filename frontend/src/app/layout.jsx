@@ -1,7 +1,7 @@
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "react-hot-toast";
-import Landingnavbar from "../components/Lamdingnavbar"; // Correct import path for Landingnavbar
+import Landingnavbar from "../components/Landingnavbar"; // Correct import path for Landingnavbar
 
 const inter = Inter({ subsets: ["latin"] });
 
