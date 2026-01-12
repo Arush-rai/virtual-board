@@ -11,7 +11,8 @@ const app = express();
 const port = 5000;
 
 app.use(cors({
-    origin: ['http://localhost:3000']
+    origin: ['http://localhost:3000','https://virtual-board-nine.vercel.app'],
+    credentials: true
 }));
 app.use(express.json());
 
