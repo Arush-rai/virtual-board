@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation';
 
 const AddClassRoom = () => {
   const router = useRouter();
+  // Ensure we are in the browser before accessing localStorage
   const token = typeof window !== 'undefined' ? localStorage.getItem('teacher') : null;
 
   const classroomForm = useFormik({
@@ -16,7 +17,8 @@ const AddClassRoom = () => {
       timeslot: '',
     },
     onSubmit: (values) => {
-      axios.post('http://localhost:5000/classroom/add', values, {
+      // UPDATED URL HERE --------------------------------------------
+      axios.post('https://virtual-board-j5ls.onrender.com/classroom/add', values, {
         headers: {
           'x-auth-token': token
         }
@@ -24,7 +26,8 @@ const AddClassRoom = () => {
         .then(() => {
           toast.success('Class created Successfully');
           router.push('/teacher/manage-classroom');
-        }).catch(() => {
+        }).catch((err) => {
+          console.error(err); // Good for debugging
           toast.error('Something went wrong');
         });
     },
